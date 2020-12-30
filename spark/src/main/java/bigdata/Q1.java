@@ -102,13 +102,19 @@ public class Q1 {
 			connection = ConnectionFactory.createConnection(hbConf);
 			// Obtain the table object.
 			table = connection.getTable(TableName.valueOf(tableName));
-			List<Tuple2<String,Integer>> data = hashtags.collect();
+			//List<Tuple2<String,Integer>> topHashtags = hashtags.top(100);
+			//List<Tuple2<String,Integer>> data = hashtags.top(100);
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+			//System.out.println(data.get(0));
 			
+			//List<Tuple2<String,Integer>> data = topHashtags;
+			
+			List<Tuple2<String,Integer>> data = hashtags.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
 			Integer i = 0;
 			for (Tuple2<String,Integer> line : data) {
 				Put put = new Put(Bytes.toBytes("row" + i));
 				//System.out.println(String.format("(%s,%s)", line._1,line._2));
-				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(line._2));
+				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s",line._2)));
 				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(line._1));
 				i += 1;
 				table.put(put);
