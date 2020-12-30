@@ -1,4 +1,4 @@
-package main.java.bigdata.tweet;
+package bigdata;
 
 public class HashTags {
     public String text;

@@ -24,7 +24,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.util.StatCounter;
 
-import bigdata.Tweet.TweetEntity.TweetHashtags;
+import bigdata.Tweet;
+import bigdata.HashTags;
 import scala.Tuple2;
 
 public class Q1 {
@@ -34,7 +35,9 @@ public class Q1 {
 			System.err.println("Usage: TPSpark <file>");
 			System.exit(1);
 		}
-		int daySelected = args[0];
+
+		int daySelected = Integer.parseInt(args[0]);
+
 		if(daySelected < 1 || daySelected > 21){
 			System.err.println("Day are incluted between 1 and 21");
 			System.exit(1);
@@ -42,7 +45,15 @@ public class Q1 {
 
 		String tweetStartFilePath = "/raw_data/tweet_";
 		String tweetEndFilePath = "_03_2020.nljson";
-		String tweetFile = tweetStartFilePath + daySelected + tweetEndFilePath;
+		StringBuilder day = new StringBuilder();
+		if(daySelected < 10){
+			day.append(tweetStartFilePath);
+			day.append("0");
+		}
+		else{
+			day.append(tweetStartFilePath);
+		}
+		String tweetFile = day.toString() + daySelected + tweetEndFilePath;
 
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
@@ -74,10 +85,12 @@ public class Q1 {
 	}
 
 	public static JavaPairRDD<String, Integer> getTopKHashtags(JavaRDD<Tweet> tweets) {
-		JavaRDD<TweetHashtags> hashtagsObj = tweets.flatMap(tweet -> {
-			ArrayList<TweetHashtags> res = new ArrayList<TweetHashtags>();
+
+		// JavaRDD<TweetHashtags> hashtagsObj = tweets.flatMap(tweet -> {
+		JavaRDD<HashTags> hashtagsObj = tweets.flatMap(tweet -> {
+			ArrayList<HashTags> res = new ArrayList<HashTags>();
 			try {
-				for (TweetHashtags hashtag : tweet.entities.hashtags) {
+				for (HashTags hashtag : tweet.entities.hashtags) {
 					res.add(hashtag);
 				}
 				return res.iterator();
@@ -89,7 +102,7 @@ public class Q1 {
 		JavaRDD<String> hashtags = hashtagsObj.map(hashtag -> hashtag.text.toLowerCase());
 		// JavaRDD<String> lowerHastags = hashtags.map(hashtag -> hashtag.toLowerCase());
 		
-		JavaPairRDD<String,Integer> counts = hashtags.mapToPair(hashtag -> new Tuple2<String, Integer>(hashtag, 1));
+		JavaPairRDD<String, Integer> counts = hashtags.mapToPair(hashtag -> new Tuple2<String, Integer>(hashtag, 1));
 		JavaPairRDD<String, Integer> freq = counts.reduceByKey((a, b) -> a + b);
 		// for(Tuple2<String,Integer> hashtag : freq.collect()){
 		// 	System.out.println(String.format("(%s,%s)", hashtag._1,hashtag._2));

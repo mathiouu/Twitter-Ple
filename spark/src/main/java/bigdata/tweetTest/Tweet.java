@@ -1,4 +1,7 @@
-package main.java.bigdata.tweet;
+package bigdata;
+
+import bigdata.Entity;
+import bigdata.User;
 
 public class Tweet {
     public String created_at;
