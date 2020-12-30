@@ -34,11 +34,22 @@ public class Q1 {
 			System.err.println("Usage: TPSpark <file>");
 			System.exit(1);
 		}
+		int daySelected = args[0];
+		if(daySelected < 1 || daySelected > 21){
+			System.err.println("Day are incluted between 1 and 21");
+			System.exit(1);
+		}
+
+		String tweetStartFilePath = "/raw_data/tweet_";
+		String tweetEndFilePath = "_03_2020.nljson";
+		String tweetFile = tweetStartFilePath + daySelected + tweetEndFilePath;
+
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
 
-		JavaRDD<String> lines = context.textFile(args[0], 4);
-
+		// JavaRDD<String> lines = context.textFile(args[0], 4);
+		JavaRDD<String> lines = context.textFile(tweetFile, 4);
+		
 		JavaRDD<Tweet> tweets = convertLinesToTweets(lines);
 
 		JavaPairRDD<String,Integer> hashtags = getTopKHashtags(tweets);
@@ -56,10 +67,8 @@ public class Q1 {
 				res.add(t);
 				return res.iterator();
 			} catch (Exception e) {
-
 				return res.iterator();
 			}
-
 		});
 		return tweets;
 	}
@@ -77,12 +86,10 @@ public class Q1 {
 			}
 		});
 
+		JavaRDD<String> hashtags = hashtagsObj.map(hashtag -> hashtag.text.toLowerCase());
+		// JavaRDD<String> lowerHastags = hashtags.map(hashtag -> hashtag.toLowerCase());
 		
-		JavaRDD<String> hashtags = hashtagsObj.map(hashtag -> hashtag.text);
-		JavaRDD<String> lowerHastags = hashtags.map(hashtag -> hashtag.toLowerCase());
-		
-		JavaPairRDD<String,Integer> counts = lowerHastags
-		.mapToPair(hashtag -> new Tuple2<String, Integer>(hashtag,1));
+		JavaPairRDD<String,Integer> counts = hashtags.mapToPair(hashtag -> new Tuple2<String, Integer>(hashtag, 1));
 		JavaPairRDD<String, Integer> freq = counts.reduceByKey((a, b) -> a + b);
 		// for(Tuple2<String,Integer> hashtag : freq.collect()){
 		// 	System.out.println(String.format("(%s,%s)", hashtag._1,hashtag._2));
@@ -98,9 +105,9 @@ public class Q1 {
 		byte[] familyName = Bytes.toBytes("hashtags");
 		Connection connection = null;
 		try {
-			// Obtain the HBase connection.
+			// Obtain the HBase connection
 			connection = ConnectionFactory.createConnection(hbConf);
-			// Obtain the table object.
+			// Obtain the table object
 			table = connection.getTable(TableName.valueOf(tableName));
 			List<Tuple2<String,Integer>> data = hashtags.collect();
 			
@@ -135,7 +142,3 @@ public class Q1 {
 		}
 	}
 }
-// Country,City,AccentCity,RegionCode,Population,Latitude,Longitude
-
-// Nombre de villes valides : 47980
-// Nombre de villes :3173959
