@@ -1,5 +1,5 @@
 // package tweetTest;
-package bigdata;
+package bigdata.tweetTest;
 
 public class User {
     public String id_str;

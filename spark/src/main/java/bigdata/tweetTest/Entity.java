@@ -1,4 +1,4 @@
-package bigdata;
+package bigdata.tweetTest;
 
 import java.util.ArrayList;
 
