@@ -2,6 +2,7 @@
 package bigdata;
 
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 
@@ -32,7 +33,8 @@ import org.apache.spark.util.StatCounter;
 import java.util.regex.*;
 import bigdata.tweetTest.*;
 import scala.Tuple2;
-
+import scala.Tuple3;
+import bigdata.comparators.*;
 public class Q1 {
 
 	public static void main(String[] args) {
@@ -40,11 +42,48 @@ public class Q1 {
 			System.err.println("Usage: TPSpark <directory path> <day selected> ");
 			System.exit(1);
 		}
-		String dataDirectory = args[0];
-		int daySelected = Integer.parseInt(args[1]);
+		
+		SparkConf conf = new SparkConf().setAppName("TP Spark");
+		JavaSparkContext context = new JavaSparkContext(conf);
+		List<JavaPairRDD<Tuple2<String,String>, Integer>> listOfRdd = new ArrayList<JavaPairRDD<Tuple2<String,String>, Integer>>();
+		int nbDaySelected= 2;
+		for(int i = 1 ; i <=nbDaySelected; i++){
+			
+			String tweetFile = getTweetFile(args[0], Integer.toString(i));
+	
+			Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
+	
+			Matcher m = p.matcher(tweetFile);
+			String date = "row";
+			if(m.find()){
+				date = m.group(2);
+			}
+			JavaRDD<String> lines = context.textFile(tweetFile, 4);
+			JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
+			JavaPairRDD<Tuple2<String,String>, Integer> hashtags = getTopKHashtags(tweets,date);
+			List<Tuple2<Tuple2<String,String>,Integer>> topK = getTopK(hashtags, 100);
+			JavaPairRDD<Tuple2<String,String>, Integer> pairs = context.parallelizePairs(topK);
+
+			listOfRdd.add(pairs);
+		}
+		
+		
+		createHBaseTable(listOfRdd,context);
+		
+		context.stop();
+		///raw_data/tweet_01_03_2020.nljson
+		///raw_data/tweet_01_03_2020.nljson
+	}
+
+
+
+	public static String getTweetFile(String directory, String dayInArg){
+		
+		String dataDirectory = directory;
+		int daySelected = Integer.parseInt(dayInArg);
 
 		if(daySelected < 1 || daySelected > 21){
-			System.err.println("Day are incluted between 1 and 21");
+			System.err.println("Day are included between 1 and 21");
 			System.exit(1);
 		}
 		
@@ -58,39 +97,25 @@ public class Q1 {
 		else{
 			day.append(tweetStartFilePath);
 		}
-		String tweetFile = day.toString() + daySelected + tweetEndFilePath;
-
-		Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
-
-		Matcher m = p.matcher(tweetFile);
-		String date = "row";
-		if(m.find()){
-			date = m.group(2);
-		}
-		SparkConf conf = new SparkConf().setAppName("TP Spark");
-		JavaSparkContext context = new JavaSparkContext(conf);
-		JavaRDD<String> lines = context.textFile(tweetFile, 4);
-		//System.out.println(lines.first());
-		JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
-		
-		
-		JavaPairRDD<String,Integer> hashtags = getTopKHashtags(tweets);
-		createHBaseTable(hashtags, date,context);
-		
-		context.stop();
-		///raw_data/tweet_01_03_2020.nljson
-		///raw_data/tweet_01_03_2020.nljson
+		return day.toString() + daySelected + tweetEndFilePath;
 	}
 
 	public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
-		JavaRDD<JsonObject> tweets = lines.map(line-> {
+		JavaRDD<JsonObject> tweets = lines.flatMap(line-> {
+			ArrayList<JsonObject> res = new ArrayList<JsonObject>();
 			Gson gson = new Gson();
-			return gson.fromJson(line, JsonElement.class).getAsJsonObject();
+			try{
+				res.add(gson.fromJson(line, JsonElement.class).getAsJsonObject());
+				return res.iterator();
+			}
+			catch(Exception e){
+				return res.iterator();
+			}
 		});
 		return tweets;
 	}
 
-	public static JavaPairRDD<String, Integer> getTopKHashtags(JavaRDD<JsonObject> tweets) {
+	public static JavaPairRDD<Tuple2<String,String>, Integer> getTopKHashtags(JavaRDD<JsonObject> tweets,String date) {
 		
 		JavaRDD<String> hashtagsObj = tweets.flatMap(tweet -> {
 			ArrayList<String> res = new ArrayList<String>();
@@ -107,19 +132,23 @@ public class Q1 {
 			}
 			
 		});
-		JavaPairRDD<String,Integer> counts = hashtagsObj
-		.mapToPair(hashtag -> new Tuple2<String, Integer>(hashtag,1));
-		JavaPairRDD<String, Integer> freq = counts.reduceByKey((a, b) -> a + b);
+		JavaPairRDD<Tuple2<String,String>,Integer> counts = hashtagsObj
+		.mapToPair(hashtag -> new Tuple2<Tuple2<String,String>, Integer>(new Tuple2<String,String>(hashtag,date),1));
+		JavaPairRDD<Tuple2<String,String>, Integer> freq = counts.reduceByKey((a, b) -> a + b);
 		
 		
 		return freq;
 	}
+	public static List<Tuple2<Tuple2<String,String>,Integer>> getTopK(JavaPairRDD<Tuple2<String,String>,Integer> hashtags, int k){
+		List<Tuple2<Tuple2<String,String>,Integer>> data = hashtags.takeOrdered(100, new NbHashtagComparator());
+		return data;
+	}
 
-	public static void createHBaseTable(JavaPairRDD<String,Integer> hashtags,String date,JavaSparkContext context) {
+	public static void createHBaseTable(List<JavaPairRDD<Tuple2<String,String>, Integer>> listOfRdd,JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
-		String tableName = "testSmelezan";
+		String tableName = "seb-mat-hashtags"; 
 		byte[] familyName = Bytes.toBytes("hashtags");
 		Connection connection = null;
 		try {
@@ -127,14 +156,18 @@ public class Q1 {
 			connection = ConnectionFactory.createConnection(hbConf);
 			// Obtain the table object.
 			table = connection.getTable(TableName.valueOf(tableName));
-			
-			List<Tuple2<String,Integer>> data = hashtags.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
+			JavaPairRDD<Tuple2<String,String>, Integer> rdd = listOfRdd.get(0);
+			for(int i = 1; i < listOfRdd.size() ; i++){
+				rdd = rdd.union(listOfRdd.get(i));
+			}
+			JavaPairRDD<Tuple2<String,String>, Integer> allTopK = rdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap());
+
+			List<Tuple2<Tuple2<String,String>,Integer>> topKMap = allTopK.collect();
 			Integer i = 0;
-			for (Tuple2<String,Integer> line : data) {
-				Put put = new Put(Bytes.toBytes(date+"-"+i));
-				System.out.println(String.format("(%s,%s)", line._1,line._2));
+			for (Tuple2<Tuple2<String,String>,Integer> line : topKMap) {
+				Put put = new Put(Bytes.toBytes(line._1._2+"-"+i));
 				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s",line._2)));
-				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(line._1));
+				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(line._1._1));
 				i += 1;
 				table.put(put);
 			}
