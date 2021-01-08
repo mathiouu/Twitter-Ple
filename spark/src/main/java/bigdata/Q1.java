@@ -29,7 +29,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.util.StatCounter;
-
+import java.util.regex.*;
 import bigdata.tweetTest.*;
 import scala.Tuple2;
 
@@ -37,41 +37,49 @@ public class Q1 {
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			System.err.println("Usage: TPSpark <file>");
+			System.err.println("Usage: TPSpark <directory path> <day selected> ");
 			System.exit(1);
 		}
+		String dataDirectory = args[0];
+		int daySelected = Integer.parseInt(args[1]);
 
-		// int daySelected = Integer.parseInt(args[0]);
+		if(daySelected < 1 || daySelected > 21){
+			System.err.println("Day are incluted between 1 and 21");
+			System.exit(1);
+		}
+		
+		String tweetStartFilePath = dataDirectory+"/tweet_";
+		String tweetEndFilePath = "_03_2020.nljson";
+		StringBuilder day = new StringBuilder();
+		if(daySelected < 10){
+			day.append(tweetStartFilePath);
+			day.append("0");
+		}
+		else{
+			day.append(tweetStartFilePath);
+		}
+		String tweetFile = day.toString() + daySelected + tweetEndFilePath;
 
-		// if(daySelected < 1 || daySelected > 21){
-		// 	System.err.println("Day are incluted between 1 and 21");
-		// 	System.exit(1);
-		// }
+		Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
 
-		// String tweetStartFilePath = "/raw_data/tweet_";
-		// String tweetEndFilePath = "_03_2020.nljson";
-		// StringBuilder day = new StringBuilder();
-		// if(daySelected < 10){
-		// 	day.append(tweetStartFilePath);
-		// 	day.append("0");
-		// }
-		// else{
-		// 	day.append(tweetStartFilePath);
-		// }
-		// String tweetFile = day.toString() + daySelected + tweetEndFilePath;
-	
+		Matcher m = p.matcher(tweetFile);
+		String date = "row";
+		if(m.find()){
+			date = m.group(2);
+		}
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
-
-		JavaRDD<String> lines = context.textFile(args[0], 4);
-
+		JavaRDD<String> lines = context.textFile(tweetFile, 4);
+		//System.out.println(lines.first());
 		JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
 		
 		
 		JavaPairRDD<String,Integer> hashtags = getTopKHashtags(tweets);
-		createHBaseTable(hashtags, context);
+		createHBaseTable(hashtags, date,context);
 		
 		context.stop();
+		///raw_data/tweet_01_03_2020.nljson
+		///raw_data/tweet_01_03_2020.nljson
 	}
 
 	public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
@@ -107,7 +115,7 @@ public class Q1 {
 		return freq;
 	}
 
-	public static void createHBaseTable(JavaPairRDD<String,Integer> hashtags,JavaSparkContext context) {
+	public static void createHBaseTable(JavaPairRDD<String,Integer> hashtags,String date,JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
@@ -123,7 +131,7 @@ public class Q1 {
 			List<Tuple2<String,Integer>> data = hashtags.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
 			Integer i = 0;
 			for (Tuple2<String,Integer> line : data) {
-				Put put = new Put(Bytes.toBytes("row" + i));
+				Put put = new Put(Bytes.toBytes(date+"-"+i));
 				System.out.println(String.format("(%s,%s)", line._1,line._2));
 				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s",line._2)));
 				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(line._1));
