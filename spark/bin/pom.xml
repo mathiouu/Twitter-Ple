@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.TopKHashtagsByDay</mainClass>
+							<mainClass>bigdata.Q1</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

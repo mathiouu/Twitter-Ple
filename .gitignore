@@ -29,3 +29,4 @@ org.*
 pom.properties
 createdFiles.lst
 inputFiles.lst
+*/node_modules
