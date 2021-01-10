@@ -1,5 +1,6 @@
 package bigdata;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import com.google.gson.JsonObject;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Put;
@@ -30,8 +32,8 @@ public class Q2 {
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
 
-		String file1Path = "/raw_data/tweet_01_03_2020_first10000.nljson";
-		// String file1Path = "/raw_data/tweet_01_03_2020.nljson";
+		// String file1Path = "/raw_data/tweet_01_03_2020_first10000.nljson";
+		String file1Path = "/raw_data/tweet_01_03_2020.nljson";
 		JavaRDD<String> lines = context.textFile(file1Path, 4);
 
 		JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
@@ -76,7 +78,7 @@ public class Q2 {
 		columns.add("user");
 		columns.add("times");
 		// fillHBaseTable (rdd, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
-		fillHBaseTable (usersNbTweet, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
+		// fillHBaseTable (usersNbTweet, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
 		
 		context.stop();
 	}
@@ -302,6 +304,13 @@ public class Q2 {
 		}
 	}
 
+	// public static void createOrOverwrite(Admin admin, HTableDescriptor table) throws IOException {
+	// 	if (admin.tableExists(table.getTableName())) {
+	// 		admin.disableTable(table.getTableName());
+	// 		admin.deleteTable(table.getTableName());
+	// 	}
+	// 	admin.createTable(table);
+	// }
 
 	public static void fillHBaseTable (JavaPairRDD<String, Integer> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
@@ -309,11 +318,20 @@ public class Q2 {
 		Table table = null;
 		Connection connection = null;
 		try {
-			// Obtain the HBase connection.
+
 			connection = ConnectionFactory.createConnection(hbConf);
-			// Obtain the table object.
+
+			// final Admin admin = connection.getAdmin(); 
+			// HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
+
+			// HColumnDescriptor famLoc = new HColumnDescriptor(familyName); 
+			// final byte[] TEST = Bytes.toBytes("0");
+			// famLoc.setValue(TEST, familyName);
+			// tableDescriptor.addFamily(famLoc);			
+			// createOrOverwrite(admin, tableDescriptor);
+
 			table = connection.getTable(TableName.valueOf(tableName));
-			
+
 			Long sizeRdd = rdd.count();
 			int minSizeRdd = sizeRdd.intValue();
 
@@ -330,6 +348,7 @@ public class Q2 {
 				i += 1;
 				table.put(put);
 			}
+			// admin.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {

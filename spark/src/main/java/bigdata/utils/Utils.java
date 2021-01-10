@@ -6,6 +6,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 public class Utils {
+
     public static Writable toWritable(ArrayList<String> list){
         Writable[] content = new Writable[list.size()];
         for (int i = 0; i < content.length; i++) {
@@ -13,6 +14,7 @@ public class Utils {
         }
         return new ArrayWritable(Text.class, content);
     }
+    
     public static ArrayList<String> fromWritable(ArrayWritable writable) {
         Writable[] writables = ((ArrayWritable) writable).get();
         ArrayList<String> list = new ArrayList<String>(writables.length);
