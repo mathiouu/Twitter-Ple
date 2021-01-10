@@ -5,10 +5,9 @@ const client = hbase({
   });
 
 client
-  .table('testSmelezan' )
+  .table('seb-mat-hashtagsbyusers' )
   .row('row1')
   .get('hashtags', function(err, cell){
-    // Validate the result
     console.log(cell);
     console.log();
    });
