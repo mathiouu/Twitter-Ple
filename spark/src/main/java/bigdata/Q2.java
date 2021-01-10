@@ -44,9 +44,6 @@ public class Q2 {
 		JavaPairRDD<String, Integer> usersNbTweet = getUsersNbTweet(tweets);
 		// createHBaseTable1(usersNbTweet, context);
 
-		// 8103 de longueur
-
-
 		// JavaPairRDD<String, Integer> countriesTweet = getTweetByCountry(tweets);
 		// createHBaseTableCountries(countriesTweet, context);
 

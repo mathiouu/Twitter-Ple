@@ -13,8 +13,6 @@ import com.google.gson.JsonObject;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -30,7 +28,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.util.StatCounter;
 import java.util.regex.*;
-import bigdata.tweetTest.*;
 import scala.Tuple2;
 import scala.Tuple3;
 import bigdata.comparators.*;
@@ -128,7 +125,7 @@ public class TopKHashtagsByDay {
 		return freq;
 	}
 	public static List<Tuple2<Tuple2<String, String>, Integer>> getTopK(JavaPairRDD<Tuple2<String, String>, Integer> hashtags, int k){
-		List<Tuple2<Tuple2<String, String>, Integer>> data = hashtags.takeOrdered(k, new NbHashtagComparator());
+		List<Tuple2<Tuple2<String, String>, Integer>> data = hashtags.takeOrdered(k, new NbHashtagComparatorByDay());
 		return data;
 	}
 
