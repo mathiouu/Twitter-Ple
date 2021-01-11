@@ -24,6 +24,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import bigdata.comparators.CountComparator;
+import bigdata.utils.Utils;
 import scala.Tuple2;
 
 public class Q2 {
@@ -31,86 +32,57 @@ public class Q2 {
 
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
+		Utils utils = new Utils();
 
 		// String file1Path = "/raw_data/tweet_01_03_2020_first10000.nljson";
-		String file1Path = "/raw_data/tweet_01_03_2020.nljson";
-		JavaRDD<String> lines = context.textFile(file1Path, 4);
+		// String file1Path = "/raw_data/tweet_01_03_2020.nljson";
+		// JavaRDD<String> lines = context.textFile(file1Path, 4);
 
-		JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
+		// JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
 		
 		// JavaPairRDD<String, String> usersHashtags = getUsersHashtags(tweets);
 		// createHBaseTable(usersHashtags, context);
 
-		JavaPairRDD<String, Integer> usersNbTweet = getUsersNbTweet(tweets);
+		// JavaPairRDD<String, Integer> usersNbTweet = getUsersNbTweet(tweets);
 		// createHBaseTable1(usersNbTweet, context);
 
-		// JavaPairRDD<String, Integer> countriesTweet = getTweetByCountry(tweets);
+		// JavaPairRDD<String, Integer> countriesTweet = getTweetsByCountry(tweets);
 		// createHBaseTableCountries(countriesTweet, context);
 
-		// JavaPairRDD<String, Integer> langsTweet = getTweetByLang(tweets);
+		// JavaPairRDD<String, Integer> langsTweet = getTweetsByLang(tweets);
 		// createHBaseTableLangs(langsTweet, context);
 
 
 		// TEST
 
-		// List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
-		// int nbDaySelected = 1;
-		// for(int i = 1; i <= nbDaySelected; i++){
+		List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
+		int nbDaySelected = 1;
+		for(int i = 1; i <= nbDaySelected; i++){
 
-		// 	String tweetFile = getTweetFile(args[0], Integer.toString(i));
+			String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
 			
-		// 	JavaRDD<String> lines1 = context.textFile(tweetFile, 4);
-		// 	JavaRDD<JsonObject> tweets1 = convertLinesToTweets(lines1);
-		// 	JavaPairRDD<String, Integer> usersNbTweet1 = getUsersNbTweet(tweets1);
+			JavaRDD<String> lines1 = context.textFile(tweetFile, 4);
+			JavaRDD<JsonObject> tweets1 = utils.convertLinesToTweets(lines1);
+			JavaPairRDD<String, Integer> usersNbTweet1 = getUsersNbTweet(tweets1);
 
-		// 	listOfRdd.add(usersNbTweet1);
-		// }
+			listOfRdd.add(usersNbTweet1);
+		}
 
-		// JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
-		// for(int i = 1; i < listOfRdd.size() ; i++){
-		// 	rdd = rdd.union(listOfRdd.get(i)).distinct();
-		// }
+		JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
+		for(int i = 1; i < listOfRdd.size() ; i++){
+			rdd = rdd.union(listOfRdd.get(i)).distinct();
+		}
 
 		ArrayList<String> columns = new ArrayList<String>();
 		columns.add("user");
 		columns.add("times");
-		// fillHBaseTable (rdd, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
-		// fillHBaseTable (usersNbTweet, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
+		utils.fillHBaseTable (rdd, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
+		// utils.fillHBaseTable (usersNbTweet, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
 		
 		context.stop();
 	}
-
-	public static String getTweetFile(String directory, String dayInArg){
 		
-		int daySelected = Integer.parseInt(dayInArg);
-
-		if(daySelected < 1 || daySelected > 21){
-			System.err.println("Day are included between 1 and 21");
-			System.exit(1);
-		}
-		
-		String tweetStartFilePath = directory + "/tweet_";
-		String tweetEndFilePath = "_03_2020.nljson";
-		StringBuilder day = new StringBuilder();
-		if(daySelected < 10){
-			day.append(tweetStartFilePath);
-			day.append("0");
-		}
-		else{
-			day.append(tweetStartFilePath);
-		}
-		return day.toString() + daySelected + tweetEndFilePath;
-	}
-
-	public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
-		JavaRDD<JsonObject> tweets = lines.map(line-> {
-			Gson gson = new Gson();
-			return gson.fromJson(line, JsonElement.class).getAsJsonObject();
-		});
-		return tweets;
-	}
-
-	public static JavaPairRDD<String, Integer> getTweetByLang(JavaRDD<JsonObject> tweets){
+	public static JavaPairRDD<String, Integer> getTweetsByLang(JavaRDD<JsonObject> tweets){
 
 		JavaPairRDD<String, Integer> langsObj = tweets.mapToPair((tweet) -> {
 			try{
@@ -133,7 +105,7 @@ public class Q2 {
 		return freq;
 	}
 
-	public static JavaPairRDD<String, Integer> getTweetByCountry(JavaRDD<JsonObject> tweets){
+	public static JavaPairRDD<String, Integer> getTweetsByCountry(JavaRDD<JsonObject> tweets){
 
 		JavaPairRDD<String, Integer> countriesObj = tweets.mapToPair((tweet) -> {
 			try{
@@ -308,67 +280,7 @@ public class Q2 {
 	// 	}
 	// 	admin.createTable(table);
 	// }
-
-	public static void fillHBaseTable (JavaPairRDD<String, Integer> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
-		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
-		// Information about the declaration table
-		Table table = null;
-		Connection connection = null;
-		try {
-
-			connection = ConnectionFactory.createConnection(hbConf);
-
-			// final Admin admin = connection.getAdmin(); 
-			// HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
-
-			// HColumnDescriptor famLoc = new HColumnDescriptor(familyName); 
-			// final byte[] TEST = Bytes.toBytes("0");
-			// famLoc.setValue(TEST, familyName);
-			// tableDescriptor.addFamily(famLoc);			
-			// createOrOverwrite(admin, tableDescriptor);
-
-			table = connection.getTable(TableName.valueOf(tableName));
-
-			Long sizeRdd = rdd.count();
-			int minSizeRdd = sizeRdd.intValue();
-
-			List<Tuple2<String, Integer>> data = rdd.takeOrdered(minSizeRdd, new CountComparator());
-
-			// List<Tuple2<String,Integer>> data = rdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
-			Integer i = 0;
-
-			for (Tuple2<String, Integer> line : data) {
-
-				Put put = new Put(Bytes.toBytes(String.valueOf(i)));
-				put.addColumn(familyName, Bytes.toBytes(columns.get(0)), Bytes.toBytes(line._1));
-				put.addColumn(familyName, Bytes.toBytes(columns.get(1)), Bytes.toBytes(String.format("%s", line._2)));
-				i += 1;
-				table.put(put);
-			}
-			// admin.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (table != null) {
-				try {
-					// Close the table object.
-					table.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			if (connection != null) {
-				try {
-					// Close the HBase connection.
-					connection.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}	
 		
-	}
-
 	public static void createHBaseTable1(JavaPairRDD<String, Integer> users, JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
