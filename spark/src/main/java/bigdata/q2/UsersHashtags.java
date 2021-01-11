@@ -31,34 +31,34 @@ public class UsersHashtags {
 
     public static void main(String[] args) {
 
-		SparkConf conf = new SparkConf().setAppName("TP Spark");
-        JavaSparkContext context = new JavaSparkContext(conf);
-        Utils utils = new Utils();
+		// SparkConf conf = new SparkConf().setAppName("TP Spark");
+        // JavaSparkContext context = new JavaSparkContext(conf);
+        // Utils utils = new Utils();
 
-		List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
-		int nbDaySelected = 1;
-		for(int i = 1; i <= nbDaySelected; i++){
+		// List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
+		// int nbDaySelected = 1;
+		// for(int i = 1; i <= nbDaySelected; i++){
 
-			String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
+		// 	String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
 			
-			JavaRDD<String> lines = context.textFile(tweetFile, 4);
-            JavaRDD<JsonObject> tweets = utils.convertLinesToTweets(lines)
-			JavaPairRDD<String, Integer> usersHashtags = getUsersHashtags(tweets);
+		// 	JavaRDD<String> lines = context.textFile(tweetFile, 4);
+        //     JavaRDD<JsonObject> tweets = utils.convertLinesToTweets(lines);
+		// 	JavaPairRDD<String, Integer> usersHashtags = getUsersHashtags(tweets);
 
-			listOfRdd.add(usersHashtags);
-		}
+		// 	listOfRdd.add(usersHashtags);
+		// }
 
-		JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
-		for(int i = 1; i < listOfRdd.size() ; i++){
-			rdd = rdd.union(listOfRdd.get(i)).distinct();
-		}
+		// JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
+		// for(int i = 1; i < listOfRdd.size() ; i++){
+		// 	rdd = rdd.union(listOfRdd.get(i)).distinct();
+		// }
 
-		ArrayList<String> columns = new ArrayList<String>();
-		columns.add("userName");
-        columns.add("times");
-		utils.fillHBaseTable(rdd, context, "seb-mat-userHastags", Bytes.toBytes("userHashtags"), columns);
+		// ArrayList<String> columns = new ArrayList<String>();
+		// columns.add("userName");
+        // columns.add("times");
+		// utils.fillHBaseTable(rdd, context, "seb-mat-userHastags", Bytes.toBytes("userHashtags"), columns);
 		
-		context.stop();
+		// context.stop();
     }
 
     public static JavaPairRDD<String, String> getUsersHashtags(JavaRDD<JsonObject> tweets) {

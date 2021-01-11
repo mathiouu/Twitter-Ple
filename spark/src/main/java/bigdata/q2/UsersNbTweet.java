@@ -42,7 +42,7 @@ public class UsersNbTweet {
 			String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
 			
 			JavaRDD<String> lines = context.textFile(tweetFile, 4);
-            JavaRDD<JsonObject> tweets = utils.convertLinesToTweets(lines)
+            JavaRDD<JsonObject> tweets = utils.convertLinesToTweets(lines);
 			JavaPairRDD<String, Integer> usersNbTweet = getUsersNbTweet(tweets);
 
 			listOfRdd.add(usersNbTweet);
