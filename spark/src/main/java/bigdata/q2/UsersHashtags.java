@@ -33,16 +33,15 @@ public class UsersHashtags {
 
 		// SparkConf conf = new SparkConf().setAppName("TP Spark");
         // JavaSparkContext context = new JavaSparkContext(conf);
-        // Utils utils = new Utils();
 
 		// List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
 		// int nbDaySelected = 1;
 		// for(int i = 1; i <= nbDaySelected; i++){
 
-		// 	String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
+		// 	String tweetFile = Utils.getTweetFile(args[0], Integer.toString(i));
 			
 		// 	JavaRDD<String> lines = context.textFile(tweetFile, 4);
-        //     JavaRDD<JsonObject> tweets = utils.convertLinesToTweets(lines);
+        //     JavaRDD<JsonObject> tweets = Utils.convertLinesToTweets(lines);
 		// 	JavaPairRDD<String, Integer> usersHashtags = getUsersHashtags(tweets);
 
 		// 	listOfRdd.add(usersHashtags);
@@ -56,7 +55,7 @@ public class UsersHashtags {
 		// ArrayList<String> columns = new ArrayList<String>();
 		// columns.add("userName");
         // columns.add("times");
-		// utils.fillHBaseTable(rdd, context, "seb-mat-userHastags", Bytes.toBytes("userHashtags"), columns);
+		// Utils.fillHBaseTable(rdd, context, "seb-mat-userHastags", Bytes.toBytes("userHashtags"), columns);
 		
 		// context.stop();
     }
