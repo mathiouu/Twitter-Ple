@@ -14,9 +14,6 @@ import com.google.gson.JsonObject;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -36,7 +33,6 @@ import org.apache.spark.util.StatCounter;
 
 import org.apache.spark.api.java.function.Function2;
 import java.util.regex.*;
-import bigdata.tweetTest.*;
 import bigdata.utils.Utils;
 import scala.Tuple2;
 import scala.Tuple3;
