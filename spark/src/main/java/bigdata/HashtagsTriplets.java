@@ -13,8 +13,6 @@ import java.util.Collections;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -32,11 +30,12 @@ import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.util.StatCounter;
 import java.util.regex.*;
-import bigdata.tweetTest.*;
 import scala.Tuple2;
 import scala.Tuple3;
 import scala.Tuple4;
 import bigdata.comparators.*;
+import bigdata.tweet.*;
+
 
 public class HashtagsTriplets {
 
@@ -48,48 +47,41 @@ public class HashtagsTriplets {
 		
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
-        // String tweetFile = getTweetFile(args[0], args[1]);
-
-        // Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
-
-        // Matcher m = p.matcher(tweetFile);
-        // String date ;
-        // if(m.find()){
-        //     date = m.group(2);
-        // }
-        // else{
-        //     date = "row";
-        // }
-		JavaRDD<String> lines = context.textFile("/raw_data/tweet_01_03_2020.nljson,/raw_data/tweet_02_03_2020.nljson,/raw_data/tweet_03_03_2020.nljson,/raw_data/tweet_04_03_2020.nljson", 12);
+        
+		JavaRDD<String> lines = context.textFile("/raw_data/tweet_01_03_2020_first10000.nljson", 8);
         JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
-		JavaPairRDD<Tuple3<String,String,String>,String> newTriplets = getTriplets(tweets);
-		JavaPairRDD<Tuple3<String,String,String>,Tuple2<ArrayList<String>, Integer>> hashtagsByUsers = getHashtagsByListOfUser(newTriplets);
+		JavaPairRDD<HashtagTripletsClass,User> newTriplets = getTriplets(tweets);
+
 		
-		JavaPairRDD<Tuple4<String,String,String,ArrayList<String> >,Integer> newRdd = hashtagsByUsers.mapToPair(line -> 
-			new Tuple2<Tuple4<String,String,String,ArrayList<String> >,Integer>(
-				new Tuple4<String,String,String,ArrayList<String>>(line._1()._1(),line._1()._2(),line._1()._3(),line._2()._1()),
-					line._2._2 )
+
+		JavaPairRDD<HashtagTripletsClass,Tuple2<ArrayList<User>, Integer>> hashtagsByUsers = getHashtagsByListOfUser(newTriplets);
+		
+		JavaPairRDD<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer> newRdd = hashtagsByUsers.mapToPair(line -> 
+			new Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>(
+				new Tuple2<HashtagTripletsClass,ArrayList<User>>(line._1(),line._2()._1()),
+					line._2()._2() )
 				);
-		List<Tuple2<Tuple4<String,String,String,ArrayList<String> >,Integer>> sortedRdd = newRdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(1000);
+		List<Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>> sortedRdd = newRdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(1000);
+		
 		createHBaseTable(sortedRdd,context);
 		
 		context.stop();
 	}
 
-	public static JavaPairRDD<Tuple3<String,String,String>,String> getTriplets (JavaRDD<JsonObject> tweets){
-		JavaRDD<Tuple2<Tuple3<String,String,String>,String>> triplets = tweets.flatMap(tweet->{
-			ArrayList<Tuple2<Tuple3<String,String,String>,String>> res = new ArrayList<Tuple2<Tuple3<String,String,String>,String>>();
+	public static JavaPairRDD<HashtagTripletsClass,User> getTriplets (JavaRDD<JsonObject> tweets){
+		JavaRDD<Tuple2<HashtagTripletsClass,User>> triplets = tweets.flatMap(tweet->{
+			ArrayList<Tuple2<HashtagTripletsClass,User>> res = new ArrayList<Tuple2<HashtagTripletsClass,User>>();
 			try {
 				JsonArray hashtags = tweet.getAsJsonObject("entities").getAsJsonArray("hashtags");
 				if(hashtags.size()< 3){
 					return res.iterator();
 				}
 				
-				ArrayList<Tuple3<String,String,String>> tripletsHashtags = extractsAllTriplets(hashtags);
-				
-				String user = tweet.getAsJsonObject("user").get("screen_name").getAsString();
-				for(Tuple3<String,String,String> hashtag : tripletsHashtags){
-					res.add(new Tuple2<Tuple3<String,String,String>,String>(hashtag,user));
+				ArrayList<HashtagTripletsClass> tripletsHashtags = extractsAllTriplets(hashtags);
+				Gson gson = new Gson();
+				User user = gson.fromJson(tweet.getAsJsonObject("user"), User.class);
+				for(HashtagTripletsClass hashtag : tripletsHashtags){
+					res.add(new Tuple2<HashtagTripletsClass,User>(hashtag,user));
 				}
 				
 				return res.iterator();
@@ -103,25 +95,25 @@ public class HashtagsTriplets {
 	}
 
 
-	public static JavaPairRDD<Tuple3<String,String,String>,Tuple2<ArrayList<String>, Integer>> getHashtagsByListOfUser(JavaPairRDD<Tuple3<String,String,String>,String> newTriplets){
-		Tuple2<ArrayList<String>,Integer> zeroValue= new Tuple2<ArrayList<String>,Integer>(new ArrayList<String>(),0);
-		Function2<Tuple2<ArrayList<String>,Integer> ,String, Tuple2<ArrayList<String>, Integer> > seqOp = new Function2<Tuple2<ArrayList<String>,Integer> ,String, Tuple2<ArrayList<String>, Integer>>(){
+	public static JavaPairRDD<HashtagTripletsClass,Tuple2<ArrayList<User>, Integer>> getHashtagsByListOfUser(JavaPairRDD<HashtagTripletsClass,User> newTriplets){
+		Tuple2<ArrayList<User>,Integer> zeroValue= new Tuple2<ArrayList<User>,Integer>(new ArrayList<User>(),0);
+		Function2<Tuple2<ArrayList<User>,Integer> ,User, Tuple2<ArrayList<User>, Integer> > seqOp = new Function2<Tuple2<ArrayList<User>,Integer> ,User, Tuple2<ArrayList<User>, Integer>>(){
 			
 			@Override
-			public Tuple2<ArrayList<String>, Integer> call(Tuple2<ArrayList<String>, Integer> accumulator,String element){
-				ArrayList<String> userList = new ArrayList<String>(accumulator._1);
+			public Tuple2<ArrayList<User>, Integer> call(Tuple2<ArrayList<User>, Integer> accumulator,User element){
+				ArrayList<User> userList = new ArrayList<User>(accumulator._1);
 				if(!userList.contains(element)){
 					userList.add(element);
 				}
-				Tuple2<ArrayList<String>, Integer> newAccumulator = new Tuple2<ArrayList<String>, Integer>(userList, accumulator._2 + 1); 
+				Tuple2<ArrayList<User>, Integer> newAccumulator = new Tuple2<ArrayList<User>, Integer>(userList, accumulator._2 + 1); 
 				return newAccumulator;
 			}
         };
     
-        Function2<Tuple2<ArrayList<String>, Integer>, Tuple2<ArrayList<String>, Integer>, Tuple2<ArrayList<String>, Integer>> combOp = new Function2<Tuple2<ArrayList<String>, Integer>, Tuple2<ArrayList<String>, Integer>, Tuple2<ArrayList<String>,Integer>>(){
+        Function2<Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>> combOp = new Function2<Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>,Integer>>(){
 			@Override
-			public Tuple2<ArrayList<String>, Integer> call(Tuple2<ArrayList<String>, Integer> accumulator1, Tuple2<ArrayList<String>, Integer> accumulator2){
-				ArrayList<String> userList = new ArrayList<String>();
+			public Tuple2<ArrayList<User>, Integer> call(Tuple2<ArrayList<User>, Integer> accumulator1, Tuple2<ArrayList<User>, Integer> accumulator2){
+				ArrayList<User> userList = new ArrayList<User>();
 				for(int i = 0; i < accumulator1._1.size(); i++){
 					if(!userList.contains(accumulator1._1.get(i))){
 						userList.add(accumulator1._1.get(i));
@@ -133,7 +125,7 @@ public class HashtagsTriplets {
 						userList.add(accumulator2._1.get(i));
 					}
 				}
-				Tuple2<ArrayList<String>, Integer> result = new Tuple2<ArrayList<String>, Integer>(userList, accumulator1._2 + accumulator2._2);
+				Tuple2<ArrayList<User>, Integer> result = new Tuple2<ArrayList<User>, Integer>(userList, accumulator1._2 + accumulator2._2);
 				return result;
 			}
 		};
@@ -143,8 +135,8 @@ public class HashtagsTriplets {
 
     
 
-    public static ArrayList<Tuple3<String,String,String>> extractsAllTriplets(JsonArray hashtags){
-		ArrayList<Tuple3<String,String,String>> result = new ArrayList<Tuple3<String,String,String>>();
+    public static ArrayList<HashtagTripletsClass> extractsAllTriplets(JsonArray hashtags){
+		ArrayList<HashtagTripletsClass> result = new ArrayList<HashtagTripletsClass>();
         for (int i = 0; i <= hashtags.size()-3;i++){
 			String hashtag1 = hashtags.get(i).getAsJsonObject().get("text").getAsString();
             for(int j = i+1 ; j<= hashtags.size()-2;j++){	
@@ -158,7 +150,7 @@ public class HashtagsTriplets {
 					tuples.add(hashtag2);
 					tuples.add(hashtag3);
 					Collections.sort(tuples);
-                    result.add(new Tuple3<String,String,String>(tuples.get(0),tuples.get(1),tuples.get(2)));
+                    result.add(new HashtagTripletsClass(tuples.get(0),tuples.get(1),tuples.get(2)));
                 }
             }
         }
@@ -205,11 +197,11 @@ public class HashtagsTriplets {
 		return tweets;
 	}
 
-	public static void createHBaseTable(List<Tuple2<Tuple4<String,String,String,ArrayList<String> >,Integer>> sortedRdd ,JavaSparkContext context) {
+	public static void createHBaseTable(List<Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>> sortedRdd ,JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
-		String tableName = "seb-mat-hashtagsTriplets"; 
+		String tableName = "testSmelezan"; 
 		byte[] familyName = Bytes.toBytes("hashtags");
 		Connection connection = null;
 		try {
@@ -219,15 +211,14 @@ public class HashtagsTriplets {
 			table = connection.getTable(TableName.valueOf(tableName));
 			
 			Integer i = 0;
-			for (Tuple2<Tuple4<String,String,String,ArrayList<String> >,Integer> line : sortedRdd) {
+			for (Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer> line : sortedRdd) {
+				Gson g = new Gson();
 				Put put = new Put(Bytes.toBytes("row"+i));
 				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s",line._2)));
-				put.addColumn(familyName, Bytes.toBytes("hashtag_1"), Bytes.toBytes(line._1()._1()));
-				put.addColumn(familyName, Bytes.toBytes("hashtag_2"), Bytes.toBytes(line._1()._2()));
-				put.addColumn(familyName, Bytes.toBytes("hashtag_3"), Bytes.toBytes(line._1()._3()));
-				Gson g = new Gson();
+				put.addColumn(familyName, Bytes.toBytes("hashtags"), Bytes.toBytes(g.toJson(line._1()._1())));
 				
-				put.addColumn(familyName, Bytes.toBytes("users"), Bytes.toBytes(g.toJson(line._1()._4())));
+				
+				put.addColumn(familyName, Bytes.toBytes("users"), Bytes.toBytes(g.toJson(line._1()._2())));
 
 				i += 1;
 				table.put(put);

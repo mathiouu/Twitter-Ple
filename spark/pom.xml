@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.HashtagsTriplets</mainClass>
+							<mainClass>bigdata.FindInfluencers</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
