@@ -1,4 +1,4 @@
-package bigdata;
+package bigdata.utils;
 
 public class Lang {
     

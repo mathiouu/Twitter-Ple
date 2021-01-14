@@ -65,7 +65,7 @@ public class UsersNbTweet {
 			}
 		});
 
-		JavaPairRDD<String, Integer> freq = usersObj.reduceByKey((a, b) -> a + b);		
+		JavaPairRDD<String, Integer> freq = usersObj.reduceByKey((a, b) -> a + b, 4);		
 		return freq;
 	}
 
