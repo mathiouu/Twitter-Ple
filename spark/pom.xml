@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.TopKHashtagsByDay</mainClass>
+							<mainClass>bigdata.HashtagsTriplets</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

@@ -4,7 +4,7 @@ const client = hbase({
     port: 8080
   });
 
-client.table('seb-mat-hashtagsbyusers' ).row('row1').get('hashtags', function(err, cell) 
+client.table('seb-mat-hashtagsTriplets' ).row('row1').get('hashtags', function(err, cell) 
   {
     console.log(cell);
     console.log();
