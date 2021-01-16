@@ -22,7 +22,7 @@ public class HashtagTripletsClass implements Serializable {
     }
 
     @Override
-    public Boolean equals(Object obj){
+    public boolean equals(Object obj) {
         if(obj == this){
             return true;
         }

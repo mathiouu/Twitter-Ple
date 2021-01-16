@@ -25,6 +25,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 
 import bigdata.comparators.CountComparator;
 import bigdata.utils.Utils;
+import bigdata.utils.Lang;
 import scala.Tuple2;
 
 public class Q2 {
@@ -32,7 +33,7 @@ public class Q2 {
 
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
-		Utils utils = new Utils();
+		// Utils utils = new Utils();
 
 		// String file1Path = "/raw_data/tweet_01_03_2020_first10000.nljson";
 		// String file1Path = "/raw_data/tweet_01_03_2020.nljson";
@@ -59,10 +60,11 @@ public class Q2 {
 		int nbDaySelected = 1;
 		for(int i = 1; i <= nbDaySelected; i++){
 
-			String tweetFile = utils.getTweetFile(args[0], Integer.toString(i));
+			String tweetFile = Utils.getTweetFile(args[0], Integer.toString(i));
 			
-			JavaRDD<String> lines1 = context.textFile(tweetFile, 4);
-			JavaRDD<JsonObject> tweets1 = utils.convertLinesToTweets(lines1);
+			// JavaRDD<String> lines1 = context.textFile(tweetFile, 4);
+			JavaRDD<String> lines1 = context.textFile(tweetFile);
+			JavaRDD<JsonObject> tweets1 = Utils.convertLinesToTweets(lines1);
 			JavaPairRDD<String, Integer> usersNbTweet1 = getUsersNbTweet(tweets1);
 
 			listOfRdd.add(usersNbTweet1);
@@ -76,8 +78,8 @@ public class Q2 {
 		ArrayList<String> columns = new ArrayList<String>();
 		columns.add("user");
 		columns.add("times");
-		utils.fillHBaseTable (rdd, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
-		// utils.fillHBaseTable (usersNbTweet, context, "testDuban1", Bytes.toBytes("userNbTweet"), columns);
+		Utils.fillHBaseTable (rdd, context, "seb-mat-userNbTweet", Bytes.toBytes("userNbTweet"), columns);
+		// utils.fillHBaseTable (usersNbTweet, context, "seb-mat-userNbTweet", Bytes.toBytes("userNbTweet"), columns);
 		
 		context.stop();
 	}
@@ -128,24 +130,120 @@ public class Q2 {
 
 	public static JavaPairRDD<String, Integer> getUsersNbTweet(JavaRDD<JsonObject> tweets){
 
-		JavaPairRDD<String, Integer> usersObj = tweets.mapToPair((tweet) -> {
+		// JavaPairRDD<Integer, String> idWithUserNameRdd = tweets.mapToPair((tweet) -> {
+		// 	try{
+		// 		int keyInt = tweet.getAsJsonObject("user").get("id").getAsInt();
+		// 		Integer key = new Integer(keyInt);
+		// 		// String key = tweet.getAsJsonObject("user").get("id_str").getAsString();
+		// 		// String keyString = tweet.getAsJsonObject("user").get("id_str").getAsString();
+		// 		// Integer key = new Integer(Integer.parseInt(keyString));
+		// 		String value = tweet.getAsJsonObject("user").get("screen_name").getAsString();
+
+		// 		Tuple2<Integer, String> tuple = new Tuple2<Integer, String>(key, value);
+		// 		// Tuple2<String, String> tuple = new Tuple2<String, String>(key, value);
+		// 		return tuple;
+		// 	} catch (Exception e){
+		// 		Integer key = 1;
+		// 		String value = "unvalid user screen_name";
+
+		// 		Tuple2<Integer, String> tuple = new Tuple2<Integer, String>(key, value);
+		// 		// Tuple2<String, String> tuple = new Tuple2<String, String>("unvalid Id", value);
+		// 		return tuple;
+		// 	}
+		// });
+
+		JavaPairRDD<Integer, Tuple2<String, Integer>> idWithUserNameRdd = tweets.mapToPair((tweet) -> {
 			try{
-				String userName = tweet.getAsJsonObject("user").get("name").getAsString();
-				String twitterName = tweet.getAsJsonObject("user").get("screen_name").getAsString();
+				// int keyInt = tweet.getAsJsonObject("user").get("id").getAsInt();
+				// Integer key = new Integer(keyInt);
+				// String key = tweet.getAsJsonObject("user").get("id_str").getAsString();
+				String keyString = tweet.getAsJsonObject("user").get("id_str").getAsString();
+				Integer key = new Integer(Integer.parseInt(keyString));
+				String userName = tweet.getAsJsonObject("user").get("screen_name").getAsString();
 
-				String key = userName.toLowerCase() + " (@" + twitterName + ")";
-				Integer value = 1;
+				Tuple2<String, Integer> value = new Tuple2<String, Integer>(userName, 1);
 
-				Tuple2<String, Integer> tuple = new Tuple2<String, Integer>(key, value);
+				Tuple2<Integer, Tuple2<String, Integer>> tuple = new Tuple2<Integer, Tuple2<String, Integer>>(key, value);
+				// Tuple2<String, String> tuple = new Tuple2<String, String>(key, value);
 				return tuple;
-			} catch(Exception e){
-				Tuple2<String, Integer> tuple = new Tuple2<String, Integer>("unvalid user", 0);
+			} catch (Exception e){
+				Integer key = 1;
+				String userName = "unvalid user screen_name";
+
+				Tuple2<String, Integer> value = new Tuple2<String, Integer>(userName, 1);
+				Tuple2<Integer, Tuple2<String, Integer>> tuple = new Tuple2<Integer, Tuple2<String, Integer>>(key, value);
 				return tuple;
 			}
 		});
+	
+		JavaPairRDD<Integer, Tuple2<String, Integer>> rddTmp1 = idWithUserNameRdd.reduceByKey((a,b) -> {
+			StringBuilder str = new StringBuilder();
+			str.append(a._1());
+			str.append(",");
+			str.append(b._1());
+			String tuple_1 = str.toString();
+			Integer tuple_2 = a._2() + b._2();
 
-		JavaPairRDD<String, Integer> freq = usersObj.reduceByKey((a, b) -> a + b);		
+			Tuple2<String, Integer> res = new Tuple2<String, Integer>(tuple_1, tuple_2);
+			return res;
+		});
+		// JavaPairRDD<Integer, String> rddTmp1 = idWithUserNameRdd.reduceByKey((a,b) -> {
+		// 	StringBuilder str = new StringBuilder();
+		// 	str.append(a);
+		// 	str.append(",");
+		// 	str.append(b);
+		// 	return str.toString();
+		// });
+		// JavaPairRDD<Integer, String> rddTmp = idWithUserNameRdd.reduceByKey((val0, val1) -> val0 + "," + val1);
+
+		JavaPairRDD<String, Integer> freq = rddTmp1.mapToPair((tuple) -> {
+			try{
+				String userNameList = tuple._2()._1();
+
+				String splitted[] = userNameList.split(",");
+
+				String key = splitted[splitted.length - 1];
+				Integer value = tuple._2()._2();
+
+				Tuple2<String, Integer> res = new Tuple2<String, Integer>(key, value);
+				return res;
+			} catch (Exception e){
+				String key = "unvalid userName";
+				Integer value = 1;
+				Tuple2<String, Integer> res = new Tuple2<String, Integer>(key, value);
+				return res;
+			}
+		});
+
+		// JavaPairRDD<String, Integer> res = freq.reduceByKey((a, b) -> a + b);
 		return freq;
+
+
+		// });
+
+		// JavaPairRDD<String, Integer> usersObj = tweets.mapToPair((tweet) -> {
+		// 	try{
+		// 		String userName = tweet.getAsJsonObject("user").get("name").getAsString();
+		// 		String twitterName = tweet.getAsJsonObject("user").get("screen_name").getAsString();
+
+		// 		String userId = tweet.getAsJsonObject("user").get("id_str").getAsString();
+
+		// 		// String key = userName.toLowerCase() + " (@" + twitterName + ")";
+		// 		String key = userId;
+		// 		String key1 = twitterName + ',' + userId;
+		// 		Integer value = 1;
+
+		// 		Tuple2<String, Integer> tuple = new Tuple2<String, Integer>(key, value);
+		// 		return tuple;
+		// 	} catch(Exception e){
+		// 		Tuple2<String, Integer> tuple = new Tuple2<String, Integer>("unvalid user", 0);
+		// 		return tuple;
+		// 	}
+		// });
+
+		// // JavaPairRDD<String, Integer> freq = usersObj.reduceByKey((a, b) -> a + b, 4);
+		// JavaPairRDD<String, Integer> freq = usersObj.reduceByKey((a, b) -> a + b);
+		// return freq;
 	}
 
 	public static JavaPairRDD<String, String> getUsersHashtags(JavaRDD<JsonObject> tweets) {
@@ -331,49 +429,4 @@ public class Q2 {
 		}
 	}
 
-	public static void createHBaseTable(JavaPairRDD<String, String> userHashtags, JavaSparkContext context) {
-		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
-		// Information about the declaration table
-		Table table = null;
-		String tableName = "testDuban";
-		byte[] familyName = Bytes.toBytes("userHashtags");
-		Connection connection = null;
-		try {
-			// Obtain the HBase connection.
-			connection = ConnectionFactory.createConnection(hbConf);
-			// Obtain the table object. 
-			table = connection.getTable(TableName.valueOf(tableName));
-			
-			Integer i = 0;				
-			List<Tuple2<String, String>> data = userHashtags.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
-
-			for (Tuple2<String, String> line : data) {
-				Put put = new Put(Bytes.toBytes("row" + i));
-				// System.out.println(String.format("(%s,%s)", line._1, line._2));
-				put.addColumn(familyName, Bytes.toBytes("userName"), Bytes.toBytes(String.format("%s", line._1)));
-				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(String.format("%s", line._2)));
-				i += 1;
-				table.put(put);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (table != null) {
-				try {
-					// Close the table object.
-					table.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			if (connection != null) {
-				try {
-					// Close the HBase connection.
-					connection.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
 }

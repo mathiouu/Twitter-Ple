@@ -53,9 +53,9 @@ public class UsersByHashtags {
 		JavaPairRDD<String,Tuple2<Integer, String>> allData = JavaPairRDD.fromJavaRDD(emptyRdd);
 
         for(int i = 1; i <= nbSelectedDays; i++){
-			String tweetFile = getTweetFile(args[0], Integer.toString(i));
+			String tweetFile = Utils.getTweetFile(args[0], Integer.toString(i));
 			JavaRDD<String> lines = context.textFile(tweetFile, 4);
-			JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
+			JavaRDD<JsonObject> tweets = Utils.convertLinesToTweets(lines);
 			JavaRDD<Tuple2<String, Tuple2<Integer, String>>> hashtagsRdd = getHashtags(tweets);
 			
 			JavaPairRDD<String,Tuple2<Integer, String>> pairs = hashtagsRdd.mapToPair(hashtag-> hashtag);
@@ -87,31 +87,6 @@ public class UsersByHashtags {
 			}
 		});
 		return hashtagsRdd;
-	}
-   
-	public static String getTweetFile(String directory, String dayInArg){
-		
-		String dataDirectory = directory;
-		int daySelected = Integer.parseInt(dayInArg);
-        if(daySelected==0){
-            return "/raw_data/tweet_01_03_2020_first10000.nljson";
-        }
-		if(daySelected < 1 || daySelected > 21){
-			System.err.println("Day are included between 1 and 21");
-			System.exit(1);
-		}
-		
-		String tweetStartFilePath = dataDirectory + "/tweet_";
-		String tweetEndFilePath = "_03_2020.nljson";
-		StringBuilder day = new StringBuilder();
-		if(daySelected < 10){
-			day.append(tweetStartFilePath);
-			day.append("0");
-		}
-		else{
-			day.append(tweetStartFilePath);
-		}
-		return day.toString() + daySelected + tweetEndFilePath;
 	}
 
 	public static JavaPairRDD<String, Tuple2<ArrayList<String>, Integer>> getHashtagsByUsers(JavaPairRDD<String, Tuple2<Integer, String>> pairs){
@@ -154,20 +129,6 @@ public class UsersByHashtags {
 
 		JavaPairRDD<String, Tuple2<ArrayList<String>, Integer>> aggr = pairs.aggregateByKey(zeroValue, seqOp, combOp);
 		return aggr;
-	}
-	public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
-		JavaRDD<JsonObject> tweets = lines.flatMap(line-> {
-			ArrayList<JsonObject> res = new ArrayList<JsonObject>();
-			Gson gson = new Gson();
-			try{
-				res.add(gson.fromJson(line, JsonElement.class).getAsJsonObject());
-				return res.iterator();
-			}
-			catch(Exception e){
-				return res.iterator();
-			}
-		});
-		return tweets;
 	}
 
 	public static void createHBaseTable(JavaPairRDD<String, Tuple2<ArrayList<String>, Integer>> rdd,JavaSparkContext context) {
