@@ -1,39 +1,43 @@
-const hbase = require('hbase');
-const client = hbase({
-    host: '127.0.0.1',
-    port: 8080
-  });
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const history = require('connect-history-api-fallback');
 
-const containsUser = ([k,v]) =>{
-  return v.users.some((tuple)=> tuple._1 === "x03040x" ) ;
-};
-let mapUser = new Map();
 
-client.table('testSmelezan' ).row('row*').get('hashtags', function(err, cell) 
-  {
-    cell.forEach(line =>{
-      let currentHashtag ="";
-      if(line.column=== 'hashtags:hashtags'){
-        let value = mapUser.get(line.key);
-        if(value===undefined){
-          value = {hashtags: line['$']}
-        }
-        else{
-          value.hashtags = line['$'];
-        }
-        mapUser.set(line.key, value);
-      }
-      if(line.column=== 'hashtags:users'){
-        let value = mapUser.get(line.key);
-        let tmp = line['$'];
-        value.users = JSON.parse(tmp);
-        mapUser.set(line.key, value);
-      }
-    });
-    const res = [...mapUser].filter(containsUser);
-    res.forEach(([k,v]) => {
-      console.log(v.users);
-    })
-    console.log();
-  }
-);
+
+const app = express();
+
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+  );
+  next();
+});
+// app.use(express.static('./client/bdxquizz-front/dist'));
+// app.get('/', (req, res) => {
+//   res.sendFile('index.html', {
+//     root: `${__dirname}/client/bdxquizz-front/dist/`,
+//   });
+// });
+const port = 4000
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`)
+})
+
+const hashtagsRoute = require('./server/routes/hashtags');
+app.use('/api/hashtags/', hashtagsRoute);
+

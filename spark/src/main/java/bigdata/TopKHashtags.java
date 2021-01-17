@@ -43,61 +43,40 @@ public class TopKHashtags {
 		JavaSparkContext context = new JavaSparkContext(conf);
 		List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
 		int nbDaySelected= 5;
-		for(int i = 1 ; i <= nbDaySelected; i++){
+	
+		//String tweetFile = getTweetFile(args[0], Integer.toString(i));
+
+		// Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
+
+		// Matcher m = p.matcher(tweetFile);
+		// String date = "row";
+		// if(m.find()){
+		// 	date = m.group(2);
+		// }
+
+		JavaRDD<String> lines = context.textFile(args[0], 12);
+		JavaRDD<Tuple2<String,Integer>> hashtags = convertLinesToHashtags(lines);
+		JavaPairRDD<String,Integer> hashtagsPairRDD= hashtags.mapToPair(line->line).reduceByKey((a,b)-> a+b);
+		List<Tuple2<String, Integer>> topK = getTopK(hashtagsPairRDD, 10000);
 			
-			String tweetFile = getTweetFile(args[0], Integer.toString(i));
-	
-			Pattern p = Pattern.compile("(.*tweet_)(.+)(.nljson)");
-	
-			Matcher m = p.matcher(tweetFile);
-			String date = "row";
-			if(m.find()){
-				date = m.group(2);
-			}
-
-			JavaRDD<String> lines = context.textFile(tweetFile, 4);
-			JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
-			JavaPairRDD<String, Integer> hashtags = getHashtags(tweets,date);
-			List<Tuple2<String, Integer>> topK = getTopK(hashtags, 1000);
-			JavaPairRDD<String, Integer> pairs = context.parallelizePairs(topK);
-
-			listOfRdd.add(pairs);
-		}
-		
-		createHBaseTable(listOfRdd,context);
+		createHBaseTable(topK,context);
 		
 		context.stop();
 	}
 
-	public static String getTweetFile(String directory, String dayInArg){
-		
-		String dataDirectory = directory;
-		int daySelected = Integer.parseInt(dayInArg);
+	
 
-		if(daySelected < 1 || daySelected > 21){
-			System.err.println("Day are included between 1 and 21");
-			System.exit(1);
-		}
-		
-		String tweetStartFilePath = dataDirectory + "/tweet_";
-		String tweetEndFilePath = "_03_2020.nljson";
-		StringBuilder day = new StringBuilder();
-		if(daySelected < 10){
-			day.append(tweetStartFilePath);
-			day.append("0");
-		}
-		else{
-			day.append(tweetStartFilePath);
-		}
-		return day.toString() + daySelected + tweetEndFilePath;
-	}
-
-	public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
-		JavaRDD<JsonObject> tweets = lines.flatMap(line-> {
-			ArrayList<JsonObject> res = new ArrayList<JsonObject>();
+	public static JavaRDD<Tuple2<String,Integer>> convertLinesToHashtags(JavaRDD<String> lines) {
+		JavaRDD<Tuple2<String,Integer>> tweets = lines.flatMap(line-> {
+			ArrayList<Tuple2<String,Integer>> res = new ArrayList<Tuple2<String,Integer>>();
 			Gson gson = new Gson();
 			try{
-				res.add(gson.fromJson(line, JsonElement.class).getAsJsonObject());
+				JsonElement tweet = gson.fromJson(line, JsonElement.class).getAsJsonObject();
+				JsonArray hashtags = tweet.getAsJsonObject().getAsJsonObject("entities").getAsJsonArray("hashtags");
+				for(int i = 0 ; i< hashtags.size(); i++ ){
+					String text = hashtags.get(i).getAsJsonObject().get("text").getAsString();	
+					res.add(new Tuple2<String,Integer>(text.toLowerCase(),1));
+				} 
 				return res.iterator();
 			}
 			catch(Exception e){
@@ -135,11 +114,11 @@ public class TopKHashtags {
 		return data;
 	}
 
-	public static void createHBaseTable(List<JavaPairRDD<String, Integer>> listOfRdd, JavaSparkContext context) {
+	public static void createHBaseTable(List<Tuple2<String, Integer>> topK, JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
-		String tableName = "seb-mat-topkhashtags"; 
+		String tableName = "testSmelezan"; 
 		byte[] familyName = Bytes.toBytes("hashtags");
 		Connection connection = null;
 		try {
@@ -147,17 +126,10 @@ public class TopKHashtags {
 			connection = ConnectionFactory.createConnection(hbConf);
 			// Obtain the table object.
 			table = connection.getTable(TableName.valueOf(tableName));
-			JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
-			for(int i = 1; i < listOfRdd.size() ; i++){
-				rdd = rdd.union(listOfRdd.get(i));
-            }
-            JavaPairRDD<String, Integer> topK = rdd.reduceByKey((a, b) -> a + b);
-			JavaPairRDD<String, Integer> orderedTopK = topK.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap());
-            
-			List<Tuple2<String, Integer>> topKMap = orderedTopK.collect();
+			
 			Integer i = 0;
 
-			for (Tuple2<String, Integer> line : topKMap) {
+			for (Tuple2<String, Integer> line : topK) {
 				Put put = new Put(Bytes.toBytes("row" + i));
 				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s", line._2)));
 				put.addColumn(familyName, Bytes.toBytes("hashtag"), Bytes.toBytes(line._1));

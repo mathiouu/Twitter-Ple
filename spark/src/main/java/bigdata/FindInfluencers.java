@@ -46,16 +46,50 @@ public class FindInfluencers {
 			System.exit(1);
 		}
 		
-		// SparkConf conf = new SparkConf().setAppName("TP Spark");
-		// JavaSparkContext context = new JavaSparkContext(conf);
-        // Configuration conf = HBaseConfiguration.create();
-        // HTable hTable = new HTable(conf);
-        // Get get = new Get(toBytes("row1"));
-        // Result result = hTable.get(get);
-        // byte [] value = result.getValue(Bytes.toBytes("hashtags"),Bytes.toBytes("hashtag"));
-        // byte [] value1 = result.getValue(Bytes.toBytes("hashtags"),Bytes.toBytes("users"));
-        // System.out.println(Bytes.toString(value));
-		// context.stop();
+		SparkConf conf = new SparkConf().setAppName("TP Spark");
+		JavaSparkContext context = new JavaSparkContext(conf);
+        Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
+		
+		Table table = null;
+		String tableName = "testSmelezan"; 
+        byte[] familyName = Bytes.toBytes("hashtags");
+        try{
+            Connection connection = null;
+            connection = ConnectionFactory.createConnection(hbConf);
+            table = connection.getTable(TableName.valueOf(tableName));
+            List<Get> rowList = new ArrayList<Get>();
+            for(int i = 0 ; i< 1000; i+=1){
+                Get get = new Get(Bytes.toBytes("row"+i));
+                rowList.add(get);
+            }
+            Result[] result = table.get(rowList);
+            List<String> userList = new ArrayList<String>();
+
+            for(Result r : result){
+                byte[] usersByte = r.getValue(Bytes.toBytes("hashtags"),Bytes.toBytes("users"));
+                userList.add(Bytes.toString(usersByte));
+            }
+
+            JavaRDD<String> userRdd = context.parallelize(userList);
+            JavaRDD<Tuple2<String,Integer>> newUserRDD = userRdd.flatMap(user-> {
+                ArrayList<Tuple2<String,Integer>> res = new ArrayList<Tuple2<String,Integer>>();
+                Gson gson = new Gson();
+                User[] userObjList = gson.fromJson(user, User[].class);
+                for(int i = 0 ; i< userObjList.length; i++){
+                    res.add(new Tuple2<String,Integer>(userObjList[i].screen_name,userObjList[i].followers_count));
+                }
+                return res.iterator();
+            });
+            
+            JavaPairRDD<String,Integer> userPairRDD = newUserRDD.mapToPair(user->user).reduceByKey((a,b)->{
+                return (a>b)? a:b;
+            });
+            System.out.println(userPairRDD.count());
+        }
+        catch(Exception e){
+            System.out.println(e);
+        }
+		context.stop();
 	}
 
 	

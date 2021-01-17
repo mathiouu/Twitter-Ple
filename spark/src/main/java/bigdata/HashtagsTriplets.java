@@ -48,40 +48,40 @@ public class HashtagsTriplets {
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
         
-		JavaRDD<String> lines = context.textFile("/raw_data/tweet_01_03_2020_first10000.nljson", 8);
+		JavaRDD<String> lines = context.textFile("/raw_data/tweet_01_03_2020.nljson", 8);
         JavaRDD<JsonObject> tweets = convertLinesToTweets(lines);
-		JavaPairRDD<HashtagTripletsClass,User> newTriplets = getTriplets(tweets);
-
+		JavaPairRDD<String,String> newTriplets = getTriplets(tweets);
+		
 		
 
-		JavaPairRDD<HashtagTripletsClass,Tuple2<ArrayList<User>, Integer>> hashtagsByUsers = getHashtagsByListOfUser(newTriplets);
+		JavaPairRDD<String,Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>> hashtagsByUsers = getHashtagsByListOfUser(newTriplets);
 		
-		JavaPairRDD<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer> newRdd = hashtagsByUsers.mapToPair(line -> 
-			new Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>(
-				new Tuple2<HashtagTripletsClass,ArrayList<User>>(line._1(),line._2()._1()),
+		JavaPairRDD<Tuple2<String,ArrayList<Tuple2<String,Integer>>>,Integer> newRdd = hashtagsByUsers.mapToPair(line -> 
+			new Tuple2<Tuple2<String,ArrayList<Tuple2<String,Integer>> >,Integer>(
+				new Tuple2<String,ArrayList<Tuple2<String,Integer>>>(line._1(),line._2()._1()),
 					line._2()._2() )
 				);
-		List<Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>> sortedRdd = newRdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(1000);
-		
-		createHBaseTable(sortedRdd,context);
+		List<Tuple2<Tuple2<String,ArrayList<Tuple2<String,Integer>> >,Integer>> sortedRdd = newRdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
+		System.out.println(sortedRdd.get(99));
+		//createHBaseTable(sortedRdd,context);
 		
 		context.stop();
 	}
 
-	public static JavaPairRDD<HashtagTripletsClass,User> getTriplets (JavaRDD<JsonObject> tweets){
-		JavaRDD<Tuple2<HashtagTripletsClass,User>> triplets = tweets.flatMap(tweet->{
-			ArrayList<Tuple2<HashtagTripletsClass,User>> res = new ArrayList<Tuple2<HashtagTripletsClass,User>>();
+	public static JavaPairRDD<String,String> getTriplets (JavaRDD<JsonObject> tweets){
+		JavaRDD<Tuple2<String,String>> triplets = tweets.flatMap(tweet->{
+			ArrayList<Tuple2<String,String>> res = new ArrayList<Tuple2<String,String>>();
 			try {
 				JsonArray hashtags = tweet.getAsJsonObject("entities").getAsJsonArray("hashtags");
 				if(hashtags.size()< 3){
 					return res.iterator();
 				}
 				
-				ArrayList<HashtagTripletsClass> tripletsHashtags = extractsAllTriplets(hashtags);
+				ArrayList<String> tripletsHashtags = extractsAllTriplets(hashtags);
 				Gson gson = new Gson();
-				User user = gson.fromJson(tweet.getAsJsonObject("user"), User.class);
-				for(HashtagTripletsClass hashtag : tripletsHashtags){
-					res.add(new Tuple2<HashtagTripletsClass,User>(hashtag,user));
+				String user = tweet.getAsJsonObject("user").get("screen_name").getAsString();
+				for(String hashtag : tripletsHashtags){
+					res.add(new Tuple2<String,String>(hashtag,user));
 				}
 				
 				return res.iterator();
@@ -93,50 +93,66 @@ public class HashtagsTriplets {
 
 		 return triplets.mapToPair(triplet->triplet);
 	}
-
-
-	public static JavaPairRDD<HashtagTripletsClass,Tuple2<ArrayList<User>, Integer>> getHashtagsByListOfUser(JavaPairRDD<HashtagTripletsClass,User> newTriplets){
-		Tuple2<ArrayList<User>,Integer> zeroValue= new Tuple2<ArrayList<User>,Integer>(new ArrayList<User>(),0);
-		Function2<Tuple2<ArrayList<User>,Integer> ,User, Tuple2<ArrayList<User>, Integer> > seqOp = new Function2<Tuple2<ArrayList<User>,Integer> ,User, Tuple2<ArrayList<User>, Integer>>(){
+	
+	
+	public static JavaPairRDD<String,Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>> getHashtagsByListOfUser(JavaPairRDD<String,String> newTriplets){
+		
+		Tuple2<ArrayList<Tuple2<String,Integer>>,Integer> zeroValue= new Tuple2<ArrayList<Tuple2<String,Integer>>,Integer>(new ArrayList<Tuple2<String,Integer>>(),0);
+		Function2<Tuple2<ArrayList<Tuple2<String,Integer>>,Integer> ,String, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> > seqOp = new Function2<Tuple2<ArrayList<Tuple2<String,Integer>>,Integer> ,String, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>>(){
 			
 			@Override
-			public Tuple2<ArrayList<User>, Integer> call(Tuple2<ArrayList<User>, Integer> accumulator,User element){
-				ArrayList<User> userList = new ArrayList<User>(accumulator._1);
-				if(!userList.contains(element)){
-					userList.add(element);
+			public Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> call(Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> accumulator,String element){
+				ArrayList<Tuple2<String,Integer>> userList = new ArrayList<Tuple2<String,Integer>>(accumulator._1);
+				int nbTime=0;
+				for( Tuple2<String,Integer> user : userList){
+					if(user._1()== element){
+						user = new Tuple2<String,Integer>(user._1(), user._2()+1);
+						nbTime =user._2()+ 1;
+						// System.out.println(element+" -> "+ nbTime);
+						break;
+					}
 				}
-				Tuple2<ArrayList<User>, Integer> newAccumulator = new Tuple2<ArrayList<User>, Integer>(userList, accumulator._2 + 1); 
+				if(nbTime==0){
+					userList.add(new Tuple2<String,Integer>(element,1) );
+				}
+
+				Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> newAccumulator = new Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>(userList, accumulator._2 + 1); 
 				return newAccumulator;
 			}
         };
     
-        Function2<Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>> combOp = new Function2<Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>, Integer>, Tuple2<ArrayList<User>,Integer>>(){
+        Function2<Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>> combOp = new Function2<Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>, Tuple2<ArrayList<Tuple2<String,Integer>>,Integer>>(){
 			@Override
-			public Tuple2<ArrayList<User>, Integer> call(Tuple2<ArrayList<User>, Integer> accumulator1, Tuple2<ArrayList<User>, Integer> accumulator2){
-				ArrayList<User> userList = new ArrayList<User>();
-				for(int i = 0; i < accumulator1._1.size(); i++){
-					if(!userList.contains(accumulator1._1.get(i))){
-						userList.add(accumulator1._1.get(i));
-					}
-				}
-				
+			public Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> call(Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> accumulator1, Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> accumulator2){
+				ArrayList<Tuple2<String,Integer>> userList = new ArrayList<Tuple2<String,Integer>>( accumulator1._1());
+
+				boolean isIn = false;
 				for(int i = 0; i < accumulator2._1.size(); i++){
-					if(!userList.contains(accumulator2._1.get(i))){
+					for(Tuple2<String,Integer> user : userList){
+						if(user._1()== accumulator2._1().get(i)._1()){
+							user = new Tuple2<String,Integer>(user._1(), user._2()+ accumulator2._1().get(i)._2());
+							isIn =true;
+							break;
+						}
+					}
+					if(!isIn){
 						userList.add(accumulator2._1.get(i));
 					}
+					// if(!userList.contains(accumulator2._1.get(i))){
+					// 	userList.add(accumulator2._1.get(i));
+					// }
 				}
-				Tuple2<ArrayList<User>, Integer> result = new Tuple2<ArrayList<User>, Integer>(userList, accumulator1._2 + accumulator2._2);
+				Tuple2<ArrayList<Tuple2<String,Integer>>, Integer> result = new Tuple2<ArrayList<Tuple2<String,Integer>>, Integer>(userList, accumulator1._2 + accumulator2._2);
 				return result;
 			}
 		};
-		
 		return newTriplets.aggregateByKey(zeroValue,seqOp,combOp);
 	}
 
     
 
-    public static ArrayList<HashtagTripletsClass> extractsAllTriplets(JsonArray hashtags){
-		ArrayList<HashtagTripletsClass> result = new ArrayList<HashtagTripletsClass>();
+    public static ArrayList<String> extractsAllTriplets(JsonArray hashtags){
+		ArrayList<String> result = new ArrayList<String>();
         for (int i = 0; i <= hashtags.size()-3;i++){
 			String hashtag1 = hashtags.get(i).getAsJsonObject().get("text").getAsString();
             for(int j = i+1 ; j<= hashtags.size()-2;j++){	
@@ -150,7 +166,7 @@ public class HashtagsTriplets {
 					tuples.add(hashtag2);
 					tuples.add(hashtag3);
 					Collections.sort(tuples);
-                    result.add(new HashtagTripletsClass(tuples.get(0),tuples.get(1),tuples.get(2)));
+                    result.add(tuples.get(0)+","+tuples.get(1)+","+tuples.get(2));
                 }
             }
         }
@@ -197,7 +213,7 @@ public class HashtagsTriplets {
 		return tweets;
 	}
 
-	public static void createHBaseTable(List<Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer>> sortedRdd ,JavaSparkContext context) {
+	public static void createHBaseTable(List<Tuple2<Tuple2<String,ArrayList<Tuple2<String,Integer>> >,Integer>> sortedRdd ,JavaSparkContext context) {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
@@ -211,11 +227,11 @@ public class HashtagsTriplets {
 			table = connection.getTable(TableName.valueOf(tableName));
 			
 			Integer i = 0;
-			for (Tuple2<Tuple2<HashtagTripletsClass,ArrayList<User> >,Integer> line : sortedRdd) {
+			for (Tuple2<Tuple2<String,ArrayList<Tuple2<String,Integer>> >,Integer> line : sortedRdd) {
 				Gson g = new Gson();
 				Put put = new Put(Bytes.toBytes("row"+i));
 				put.addColumn(familyName, Bytes.toBytes("times"), Bytes.toBytes(String.format("%s",line._2)));
-				put.addColumn(familyName, Bytes.toBytes("hashtags"), Bytes.toBytes(g.toJson(line._1()._1())));
+				put.addColumn(familyName, Bytes.toBytes("hashtags"), Bytes.toBytes(line._1()._1()));
 				
 				
 				put.addColumn(familyName, Bytes.toBytes("users"), Bytes.toBytes(g.toJson(line._1()._2())));

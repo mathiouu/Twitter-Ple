@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.FindInfluencers</mainClass>
+							<mainClass>bigdata.TopKHashtags</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
