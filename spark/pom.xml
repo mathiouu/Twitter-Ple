@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.TopKHashtags</mainClass>
+							<mainClass>bigdata.hashtags.TopKHashtags</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
