@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>bigdata.hashtags.TopKHashtags</mainClass>
+							<mainClass>bigdata.hashtags.UsersByHashtag</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

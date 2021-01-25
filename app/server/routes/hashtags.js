@@ -3,5 +3,6 @@ const hashtagsCtrl = require('../controllers/hashtags');
 
 const router = express.Router();
 
-router.get('/', hashtagsCtrl.getTop10);
+router.get('/search_hashtag', hashtagsCtrl.getHashtag);
+router.get('/', hashtagsCtrl.getTopKHashtags);
 module.exports = router;

@@ -50,8 +50,8 @@ export default {
   data() {
     return {
       form: {
-        start: "",
-        end: "",
+        start: "1",
+        end: "10",
       },
       labels: [],
       data: [],
@@ -69,9 +69,9 @@ export default {
     initDays() {
       for (let i = 1; i <= 10; i++) {
         if (i < 10) {
-          this.days.push({ value: `0${i}-03-2019`, text: `0${i} mars 2019` });
+          this.days.push({ value: `0${i}_03_2020`, text: `0${i} mars 2019` });
         } else {
-          this.days.push({ value: `${i}-03-2019`, text: `${i} mars 2019` });
+          this.days.push({ value: `${i}_03_2020`, text: `${i} mars 2019` });
         }
       }
     },
@@ -88,10 +88,11 @@ export default {
     onSubmit() {
       this.loaded = false;
       console.log("submit");
+      const selected = this.selected || "all";
+      const start = this.form.start || "1";
+      const end = this.form.end || "10";
       axios
-        .get(
-          `/api/hashtags?day=all&start=${this.form.start}&end=${this.form.end}`
-        )
+        .get(`/api/hashtags?day=${selected}&start=${start}&end=${end}`)
         .then((response) => {
           const hashtags = response.data;
           console.log(hashtags);
