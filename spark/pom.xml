@@ -50,10 +50,10 @@
 					<archive>
 						<manifest>
 							<!-- <mainClass>bigdata.hashtags.UsersByHashtag</mainClass> -->
-							<!-- <mainClass>bigdata.q2.UsersHashtags</mainClass> -->
+							<mainClass>bigdata.q2.UsersHashtags</mainClass>
 							<!-- <mainClass>bigdata.q2.UsersNbTweet</mainClass> -->
 							<!-- <mainClass>bigdata.q2.TweetNbByLang</mainClass> -->
-							<mainClass>bigdata.q2.TweetNbByCountry</mainClass>
+							<!-- <mainClass>bigdata.q2.TweetNbByCountry</mainClass> -->
 						</manifest>
 					</archive>
 				</configuration>
