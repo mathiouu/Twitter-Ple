@@ -41,3 +41,5 @@ app.listen(port, () => {
 const hashtagsRoute = require('./server/routes/hashtags');
 app.use('/api/hashtags/', hashtagsRoute);
 
+const q2Route = require('./server/routes/q2Routes');
+app.use('/api/users/', q2Route);

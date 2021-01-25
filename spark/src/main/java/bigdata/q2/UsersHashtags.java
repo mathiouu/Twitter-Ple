@@ -99,7 +99,7 @@ public class UsersHashtags {
 		ArrayList<String> columns = new ArrayList<String>();
 		columns.add("user");
 		columns.add("hashTags");
-		Utils.fillHBaseTable1(rdd, context, "seb-mat-hashtagsByUsers", Bytes.toBytes("userHashtags"), columns);
+		Utils.fillHBaseTable1(rdd, context, "seb-mat-userHashtags", Bytes.toBytes("userHashtags"), columns);
 	
 		context.stop();
     }

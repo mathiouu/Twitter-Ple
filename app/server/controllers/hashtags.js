@@ -9,7 +9,7 @@ const client = hbase({
 
 exports.getTopKHashtags = (req, res) => {
   const { day, start, end } = req.query;
-  console.log(day);
+  console.log(req.query);
   if (day !== 'all') {
     client
       .table('seb-mat-tophashtagsbyday')
