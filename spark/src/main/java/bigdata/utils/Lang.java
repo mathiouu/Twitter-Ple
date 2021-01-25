@@ -49,7 +49,6 @@ public class Lang {
             case "ka" :
                 return "Georgian";
                 
-            
             // Second row
             case "de" :
                 return "German";      
@@ -87,7 +86,6 @@ public class Lang {
                 return "Latvian";               
             case "lt" :
                 return "Lithuanian";
-                
 
             // Third row
             case "ml" :
@@ -125,7 +123,6 @@ public class Lang {
             case "si" :
                 return "Sinhala";
                 
-            
             // Fourth row
             case "sk" :
                 return "Slovak";

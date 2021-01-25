@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -23,7 +24,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
-import bigdata.comparators.CountComparator;
 import scala.Tuple2;
 
 public class Utils {
@@ -43,6 +43,51 @@ public class Utils {
             list.add(((Text)wrt).toString());
         }
         return list;
+	}
+	
+	public static void fillHBaseTable1(JavaPairRDD<String, String> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
+		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
+		// Information about the declaration table
+		Table table = null;
+		Connection connection = null;
+		try {
+
+			connection = ConnectionFactory.createConnection(hbConf);
+
+			table = connection.getTable(TableName.valueOf(tableName));
+
+			List<Tuple2<String, String>> data = rdd.collect();
+			Integer i = 0;
+
+			for (Tuple2<String, String> line : data) {
+
+				Put put = new Put(Bytes.toBytes(String.valueOf(i)));
+				put.addColumn(familyName, Bytes.toBytes(columns.get(0)), Bytes.toBytes(line._1));
+				put.addColumn(familyName, Bytes.toBytes(columns.get(1)), Bytes.toBytes(line._2));
+				i += 1;
+				table.put(put);
+			}
+			// admin.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (table != null) {
+				try {
+					// Close the table object.
+					table.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			if (connection != null) {
+				try {
+					// Close the HBase connection.
+					connection.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}	
     }
 
     public static void fillHBaseTable(JavaPairRDD<String, Integer> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
@@ -68,8 +113,8 @@ public class Utils {
 			Long sizeRdd = rdd.count();
 			int minSizeRdd = sizeRdd.intValue();
 
-			List<Tuple2<String, Integer>> data = rdd.takeOrdered(minSizeRdd, new CountComparator());
-			// List<Tuple2<String, Integer>> data = rdd.collect();
+			// List<Tuple2<String, Integer>> data = rdd.takeOrdered(minSizeRdd, new CountComparator());
+			List<Tuple2<String, Integer>> data = rdd.collect();
 
 			// List<Tuple2<String,Integer>> data = rdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
 			Integer i = 0;
@@ -128,11 +173,6 @@ public class Utils {
 	}
 
     public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
-		// JavaRDD<JsonObject> tweets = lines.map(line-> {
-		// 	Gson gson = new Gson();
-		// 	return gson.fromJson(line, JsonElement.class).getAsJsonObject();
-		// });
-		// return tweets;
 		JavaRDD<JsonObject> tweets = lines.flatMap(line-> {
 			ArrayList<JsonObject> res = new ArrayList<JsonObject>();
 			Gson gson = new Gson();
@@ -145,6 +185,7 @@ public class Utils {
 			}
 		});
 		return tweets;
-    }
-    
+	}
+	
+
 }
