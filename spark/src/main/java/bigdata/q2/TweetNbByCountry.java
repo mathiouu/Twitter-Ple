@@ -53,16 +53,17 @@ public class TweetNbByCountry {
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
 		
-		String filePath = "/raw_data/tweet_01_03_2020_first10000.nljson";
+		// String filePath = "/raw_data/tweet_01_03_2020_first10000.nljson";
 		// String filePath = "/raw_data/tweet_01_03_2020.nljson";
 
 		List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
 
-		int nbDaySelected = 1;
+		int nbDaySelected = 5;
 		for(int i = 1; i <= nbDaySelected; i++){
 
-			// String tweetFile = Utils.getTweetFile(args[0], Integer.toString(i));
+			String filePath = Utils.getTweetFile(args[0], Integer.toString(i));
 			
+			// JavaRDD<String> lines = context.textFile(filePath, 4);
 			JavaRDD<String> lines = context.textFile(filePath, 4);
 
 			JavaRDD<Tuple2<String, Integer>> tweets = lines.flatMap(getNbTweetByCountry);

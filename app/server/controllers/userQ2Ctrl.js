@@ -34,6 +34,7 @@ exports.getUserHashtags = (req, res, next) => {
             listRes.push(elem);
         });
 
+
         res.json(listRes);
     });
 };
@@ -70,11 +71,69 @@ exports.getUserNbTweet = (req, res, next) => {
 
         res.json(listRes);
     });
+};
+
+exports.getStatsTweetByCountry = (req, res, next) => {
+    console.log("---- Start getStatsTweetByCountry ----");
+    const CONFIG = require('../api/userQ2/tweetNbByLang');
+
+    client.table(CONFIG.tableName).row('*').get(CONFIG.columnName, function(err, cell) {
+
+        let mapTweetByCountry = new Map();
+        let cptTimes = 0;
+        cell.forEach(line => {
+            if (line.column === CONFIG.lang){
+                let obj = {};
+                mapTweetByCountry.set(line.key, obj);
+
+                let value = mapTweetByCountry.get(line.key);
+                let lang = line['$'];
+                value.lang = lang;
+                mapTweetByCountry.set(line.key, value);
+            }
+            if (line.column === CONFIG.times){
+                let value = mapTweetByCountry.get(line.key);
+                let times = line['$'];
+                value.times = times;
+                cptTimes += parseInt(times,10);
+                mapTweetByCountry.set(line.key, value);
+            }
+        });
+        let listRes = [];
+        mapTweetByCountry.forEach(elem => {
+            listRes.push(elem);
+        });
+        listRes.sort(sortArrayWithInteger);
+        listRes.forEach(elem => {
+            const average = (elem.times / cptTimes) * 100;
+            elem.average = average;
+        });
+        listRes.push({
+            nbTimesTotal : cptTimes
+        });
+
+
+        res.json(listRes);
+    });
 }
 
 exports.getTweetNbByCountry = (req, res, next) => {
     console.log("---- Start getTweetNbByCountry ----");
     const CONFIG = require('../api/userQ2/tweetNbByCountry');
+
+    // ---- TEST ----
+
+    const tableName = 'seb-mat';
+    client.tables((error, tables) => {
+        tables.forEach(elem => {
+            const name = elem.name;
+            if(name.includes(tableName)){
+                console.log(name);
+            }
+        })
+    });
+
+    // ---- TEST ----
 
     client.table(CONFIG.tableName).row('*').get(CONFIG.columnName, function(err, cell) {
 
@@ -100,9 +159,21 @@ exports.getTweetNbByCountry = (req, res, next) => {
         mapTweetByCountry.forEach(elem => {
             listRes.push(elem);
         });
-
+        listRes.sort(sortArrayWithInteger);
         res.json(listRes);
     });
+}
+
+function sortArrayWithInteger(a, b){
+    const aTimes = parseInt(a.times, 10);
+    const bTimes = parseInt(b.times, 10);
+    if(aTimes > bTimes){
+        return -1;
+    }
+    if(aTimes < bTimes){
+        return 1;
+    }
+    return 0;
 }
 
 exports.getTweetNbByLang = (req, res, next) => {
@@ -134,6 +205,7 @@ exports.getTweetNbByLang = (req, res, next) => {
             listRes.push(elem);
         });
 
+        listRes.sort(sortArrayWithInteger);
         res.json(listRes);
     });
 }

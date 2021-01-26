@@ -10,6 +10,7 @@ import com.google.gson.JsonObject;
 
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.spark.SparkConf;
+import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -56,29 +57,31 @@ public class TweetNbByLang {
 		SparkConf conf = new SparkConf().setAppName("TP Spark");
 		JavaSparkContext context = new JavaSparkContext(conf);
 		
-		String filePath = "/raw_data/tweet_01_03_2020_first10000.nljson";
+		// String filePath = "/raw_data/tweet_01_03_2020_first10000.nljson";
 		// String filePath = "/raw_data/tweet_01_03_2020.nljson";
 
 		List<JavaPairRDD<String, Integer>> listOfRdd = new ArrayList<JavaPairRDD<String, Integer>>();
 
-		int nbDaySelected = 1;
+		int nbDaySelected = 20;
 		for(int i = 1; i <= nbDaySelected; i++){
 
 			// String tweetFile = Utils.getTweetFile(args[0], Integer.toString(i));
+			String filePath = Utils.getTweetFile(args[0], Integer.toString(i));
 			
 			JavaRDD<String> lines = context.textFile(filePath, 4);
 
 			JavaRDD<Tuple2<String, Integer>> tweets = lines.flatMap(getNbTweetByLang);
-			JavaPairRDD<String, Integer> pairRddNbTweetByLang = tweets.mapToPair(tweet-> tweet);
+			JavaPairRDD<String, Integer> pairRddNbTweetByLang = tweets.mapToPair(tweet-> tweet).partitionBy(new HashPartitioner(15));
 			
 			JavaPairRDD<String, Integer> resRDDNbTweetByLang = pairRddNbTweetByLang.reduceByKey((a,b) -> a + b);
 
 			listOfRdd.add(resRDDNbTweetByLang);
 		}
 
+		
 		JavaPairRDD<String, Integer> rdd = listOfRdd.get(0);
 		for(int i = 1; i < listOfRdd.size() ; i++){
-			rdd = rdd.union(listOfRdd.get(i)).distinct();
+			rdd = rdd.union(listOfRdd.get(i)).reduceByKey((a, b) -> a + b);
 		}
 
 		ArrayList<String> columns = new ArrayList<String>();

@@ -11,6 +11,11 @@
           <b-nav-item> <router-link to="/hashtags">TopHashtags</router-link></b-nav-item>
           <b-nav-item> <router-link to="/search-hashtags">search hashtag</router-link></b-nav-item>
 
+          <!-- Q2 PART -->
+
+          <b-nav-item> <router-link to="/tweetNbByLang">tweetByLang</router-link></b-nav-item>
+          <b-nav-item> <router-link to="/tweetNbByCountry">tweetByCountry</router-link></b-nav-item>
+
          
         </b-navbar-nav>
 

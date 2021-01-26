@@ -37,6 +37,22 @@ const routes = [
     component: () =>
       import(/* webpackChunkName: "about" */ '../views/SearchHashtags.vue'),
   },
+
+  // Q2 PART
+
+  {
+    path: '/tweetNbByLang',
+    name: 'tweetNbByLang',
+    component: () =>
+      import('../views/userQ2/TweetNbByLang.vue'),
+  },
+
+  {
+    path: '/tweetNbByCountry',
+    name: 'tweetNbByCountry',
+    component: () =>
+      import( '../views/userQ2/TweetNbByCountry.vue'),
+  },
 ];
 
 const router = new VueRouter({
