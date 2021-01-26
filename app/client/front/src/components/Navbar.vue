@@ -8,8 +8,22 @@
         <b-navbar-nav>
           <b-nav-item><router-link to="/">Home</router-link></b-nav-item>
           <b-nav-item> <router-link to="/about">About</router-link></b-nav-item>
-          <b-nav-item> <router-link to="/hashtags">TopHashtags</router-link></b-nav-item>
-          <b-nav-item> <router-link to="/search-hashtags">search hashtag</router-link></b-nav-item>
+          <b-nav-item-dropdown >
+          <template #button-content>
+            <em>Hashtags</em>
+          </template>
+          <b-dropdown-item> <router-link to="/hashtags">Top hashtags</router-link></b-dropdown-item>
+          <b-dropdown-item> <router-link to="/search-hashtags">search hashtags</router-link></b-dropdown-item>
+        </b-nav-item-dropdown>
+          <b-nav-item-dropdown >
+          <template #button-content>
+            <em>Influencers</em>
+          </template>
+          <b-dropdown-item> <router-link to="/influencers">Influencers</router-link></b-dropdown-item>
+          <b-dropdown-item> <router-link to="/triplets">Triplets</router-link></b-dropdown-item>
+        </b-nav-item-dropdown>
+          <!-- <b-nav-item> <router-link to="/hashtags">TopHashtags</router-link></b-nav-item>
+          <b-nav-item> <router-link to="/search-hashtags">search hashtag</router-link></b-nav-item> -->
 
           <!-- Q2 PART -->
 

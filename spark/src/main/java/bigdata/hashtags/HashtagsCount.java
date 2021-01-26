@@ -75,7 +75,7 @@ public class HashtagsCount {
 		JavaSparkContext context = new JavaSparkContext(conf);
 		JavaRDD<String> lines = context.textFile(args[0]);
 		JavaPairRDD<String, Integer> tweets = lines.flatMapToPair(getHashtags);
-		tweets = tweets.repartition(123);
+		tweets = tweets.repartition(30);
 		JavaPairRDD<String,Integer> aggr = tweets.reduceByKey((a,b)-> a+b);
 		
 		//System.out.println(aggr.first());

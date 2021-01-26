@@ -1,6 +1,5 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
-import Home from '../views/Home.vue';
 
 Vue.use(VueRouter);
 
@@ -8,7 +7,8 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    component: () =>
+      import(/* webpackChunkName: "about" */ '../views/Hashtags.vue'),
   },
   {
     path: '/about',
@@ -53,6 +53,25 @@ const routes = [
     component: () =>
       import( '../views/userQ2/TweetNbByCountry.vue'),
   },
+
+  {
+    path: '/influencers',
+    name: 'influencers',
+    component: () =>
+      import('../views/influencers/Influencers.vue'),
+  },
+
+  {
+    path: '/triplets',
+    name: 'triplets',
+    component: () =>
+      import( '../views/influencers/SearchTriplets.vue'),
+  },
+
+
+
+
+
 ];
 
 const router = new VueRouter({
