@@ -91,7 +91,7 @@ public class TopKHashtagsByDay {
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
 		Table table = null;
-		String tableName = "testSmelezan"; 
+		String tableName = "seb-mat-tophashtagsbyday"; 
 		byte[] familyName = Bytes.toBytes("hashtags");
 		Connection connection = null;
 		try {

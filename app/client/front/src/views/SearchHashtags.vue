@@ -1,25 +1,27 @@
 <template>
   <div>
     <b-row>
+
+        <b-col md="2"></b-col>
         <b-col>
 
-    <b-form>
-      <b-form-group
-        id="input-group-1"
-        label="Email address:"
-        label-for="input-1"
-      >
-        <b-form-input
-          id="input-1"
-          v-model="hashtagToSearch"
-          type="text"
-          placeholder="Enter hashtag"
-          required
-        ></b-form-input>
-        </b-form-group>
-    <b-button @click="onSubmit" variant="primary">Submit</b-button>
-    </b-form>
+          <b-form>
+            <b-form-group
+              id="input-group-1"
+              label-for="input-1"
+            >
+              <b-form-input
+                id="input-1"
+                v-model="hashtagToSearch"
+                placeholder="Enter hashtag"
+                required
+              ></b-form-input>
+              </b-form-group>
+          <b-button @click="onSubmit" variant="primary">Submit</b-button>
+          </b-form>
         </b-col>
+        
+        <b-col md="2"></b-col>
     </b-row>
     <b-row v-if="loaded">
         <b-col md="2"></b-col>
