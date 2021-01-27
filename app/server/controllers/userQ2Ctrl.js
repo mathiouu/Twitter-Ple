@@ -64,12 +64,14 @@ exports.getUserNbTweet = (req, res, next) => {
                 mapUserNbTweet.set(line.key, value);
             }
         });
+        console.log("---- Before getUserNbTweet : forEach ----");
         let listRes = [];
         mapUserNbTweet.forEach(elem => {
             listRes.push(elem);
         });
 
-        res.json(listRes);
+        // res.json(listRes);
+        res.json(["test"]);
     });
 };
 
