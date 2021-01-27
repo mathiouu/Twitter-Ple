@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedHashSet;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -38,13 +39,13 @@ import org.apache.hadoop.fs.FileSystem;
 
 public class UsersHashtags {
 
-	public static FlatMapFunction<String, Tuple2<Long, Tuple2<String, List<String>>>> getUserHashtags = new FlatMapFunction<String, Tuple2<Long, Tuple2<String, List<String>>>>(){
+	public static FlatMapFunction<String, Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>> getUserHashtags = new FlatMapFunction<String, Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>>(){
 		private static final long serialVersionUID = 1L;
 	
 		@Override
-		public Iterator<Tuple2<Long, Tuple2<String, List<String>>>> call(String line) {
+		public Iterator<Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>> call(String line) {
 
-			List<Tuple2<Long, Tuple2<String, List<String>>>> res = new ArrayList<Tuple2<Long, Tuple2<String, List<String>>>>();
+			List<Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>> res = new ArrayList<Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>>();
 			Gson gson = new Gson();
 
 			try{
@@ -52,7 +53,7 @@ public class UsersHashtags {
 				Long key = tweet.getAsJsonObject("user").get("id_str").getAsLong();
 				String userName = tweet.getAsJsonObject("user").get("screen_name").getAsString();
 
-				List<String> hashtagsList = new ArrayList<String>();
+				LinkedHashSet<String> hashtagsList = new LinkedHashSet<String>();
 				JsonArray hashtags = tweet.getAsJsonObject("entities").getAsJsonArray("hashtags");
 				if(hashtags.size() < 1){
 					throw new Exception("test exception");
@@ -63,8 +64,8 @@ public class UsersHashtags {
 					hashtagsList.add(hashtagsText.toLowerCase());
 				}
 				
-				Tuple2<String, List<String>> value = new Tuple2<String, List<String>>(userName, hashtagsList);
-				Tuple2<Long, Tuple2<String, List<String>>> tuple = new Tuple2<Long, Tuple2<String, List<String>>>(key, value);
+				Tuple2<String, LinkedHashSet<String>> value = new Tuple2<String, LinkedHashSet<String>>(userName, hashtagsList);
+				Tuple2<Long, Tuple2<String, LinkedHashSet<String>>> tuple = new Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>(key, value);
 
 				res.add(tuple);
 				return res.iterator();
@@ -89,8 +90,8 @@ public class UsersHashtags {
 
 			JavaRDD<String> lines = context.textFile(filePath, 4);
 
-			JavaRDD<Tuple2<Long, Tuple2<String, List<String>>>> tweets = lines.flatMap(getUserHashtags);
-			JavaPairRDD<Long, Tuple2<String, List<String>>> pairRddUserHashtags = tweets.mapToPair(tweet-> tweet).partitionBy(new HashPartitioner(30));
+			JavaRDD<Tuple2<Long, Tuple2<String, LinkedHashSet<String>>>> tweets = lines.flatMap(getUserHashtags);
+			JavaPairRDD<Long, Tuple2<String, LinkedHashSet<String>>> pairRddUserHashtags = tweets.mapToPair(tweet-> tweet).partitionBy(new HashPartitioner(30));
 
 			pairRddUserHashtags.repartition(20);
 
@@ -167,13 +168,12 @@ public class UsersHashtags {
 		}
 	}
 
-
-	public static JavaPairRDD<String, String> getUsersHashtags(JavaPairRDD<Long, Tuple2<String, List<String>>> userHashtags) {
+	public static JavaPairRDD<String, String> getUsersHashtags(JavaPairRDD<Long, Tuple2<String, LinkedHashSet<String>>> userHashtags) {
 
 		// Reducer (without duplicates)
-		JavaPairRDD<Long, Tuple2<String, List<String>>> reducer = userHashtags.reduceByKey((a,b) -> {
-			List<String> hashTagsListA = a._2();
-			List<String> hashTagsListB = b._2();
+		JavaPairRDD<Long, Tuple2<String, LinkedHashSet<String>>> reducer = userHashtags.reduceByKey((a,b) -> {
+			LinkedHashSet<String> hashTagsListA = new LinkedHashSet<>(a._2());
+    		LinkedHashSet<String> hashTagsListB = new LinkedHashSet<>(b._2());
 
 			hashTagsListA.addAll(hashTagsListB);
 			
@@ -182,9 +182,8 @@ public class UsersHashtags {
 			str.append(",");
 			str.append(b._1());
 			String tuple_1 = str.toString();
-			List<String> tuple_2 = new ArrayList<>(new HashSet<>(hashTagsListA));
 
-			Tuple2<String, List<String>> res = new Tuple2<String, List<String>>(tuple_1, tuple_2);
+			Tuple2<String, LinkedHashSet<String>> res = new Tuple2<String, LinkedHashSet<String>>(tuple_1, hashTagsListA);
 			return res;
 		}).partitionBy(new HashPartitioner(30));
 
@@ -195,12 +194,12 @@ public class UsersHashtags {
 
 				String key = '@' + splitted[splitted.length - 1];
 
-				List<String> hashtagsWithoutDuplicates = tuple._2()._2();
+				LinkedHashSet<String> hashtagsWithoutDuplicates = tuple._2()._2();
 				StringBuilder value = new StringBuilder();
 
 				for(String hashtag : hashtagsWithoutDuplicates){
 					value.append(hashtag);
-					value.append(",");
+					value.append(", ");
 				}
 
 				Tuple2<String, String> res = new Tuple2<String, String>(key, value.toString());
