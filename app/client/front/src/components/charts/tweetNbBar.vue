@@ -1,7 +1,8 @@
+
 <script>
-import { Pie, mixins } from "vue-chartjs";
+import { Bar } from "vue-chartjs";
 export default {
-  extends: Pie,
+  extends: Bar,
   props: {
     labels: {
       type: Array,
@@ -12,18 +13,17 @@ export default {
       default: null,
     },
     colors: {
-        type: Array,
-        default : null
+      type: Array,
+      default : null
     },
   },
-  mixins: [mixins.reactiveProp],
   data: () => ({
     chartdata: {
       labels: [],
       datasets: [
         {
-        //   backgroundColor: "#879C83",
-        backgroundColor: [],
+          label: "Data Lang",
+          backgroundColor: [],
           data: [],
         },
       ],
