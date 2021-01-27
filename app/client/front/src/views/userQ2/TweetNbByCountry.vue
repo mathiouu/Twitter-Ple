@@ -7,7 +7,7 @@
     <b-row>
       <b-col md="10" v-if="!err.boolValue">
         <h2> Diagram about number tweets by country </h2>
-        <TweetNbBar v-if="display.loaded" :labels="labels" :data="data" />
+        <TweetNbBar v-if="display.loaded" :labels="labels" :data="data" :colors="colors" />
       </b-col>
 
       <b-col md="10" v-if="err.boolValue">
