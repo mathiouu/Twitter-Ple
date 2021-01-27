@@ -39,8 +39,8 @@
             <template #button-content>
               <em>Users</em>
             </template>
-            <!-- <b-dropdown-item> <router-link to="/tweetNbByLang">tweetByLang</router-link></b-dropdown-item>
-            <b-dropdown-item> <router-link to="/tweetNbByCountry">tweetByCountry</router-link></b-dropdown-item> -->
+            <b-dropdown-item> <router-link to="/userNbTweet">userNbTweet</router-link></b-dropdown-item>
+            <b-dropdown-item> <router-link to="/userHashtags">userHashtags</router-link></b-dropdown-item>
           </b-nav-item-dropdown>
 
          

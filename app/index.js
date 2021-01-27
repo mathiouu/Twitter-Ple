@@ -41,8 +41,11 @@ app.listen(port, () => {
 const hashtagsRoute = require('./server/routes/hashtags');
 app.use('/api/hashtags/', hashtagsRoute);
 
-const q2Route = require('./server/routes/q2Routes');
-app.use('/api/users/', q2Route);
+const userQ2Route = require('./server/routes/q2Routes');
+app.use('/api/users/', userQ2Route);
 
 const influencersRoute = require('./server/routes/influencers');
 app.use('/api/influencers/', influencersRoute);
+
+const infoRoute = require('./server/routes/infoRoutes');
+app.use('/api/hbase/', infoRoute);

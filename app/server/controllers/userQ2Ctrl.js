@@ -3,48 +3,64 @@ const hbaseConfig = require('../api/hbaseConfig');
 
 const client = hbase(hbaseConfig);
 
+/**
+ * example : http://localhost:4000/api/users/userHashtags?search=math
+ */
 
 exports.getUserHashtags = (req, res, next) => {
     console.log("---- Start getUserHashtags ----");
     const CONFIG = require('../api/userQ2/userHashtags');
+    const {search} = req.query;
+    const filter = {
+        "op": "EQUAL",
+        "type": "RowFilter",
+        "comparator": { "value": `.*${search}.*`, "type": "RegexStringComparator" }
+    };
 
-    client.table(CONFIG.tableName).row('*').get(CONFIG.columnName, function(err, cell) {
-        console.log(cell);
-
-        let mapUserNbTweet = new Map();
+    client.table(CONFIG.tableName).scan({filter}, function(err, cell) {
+        
+        let mapUserHashtags = new Map();
         cell.forEach(line => {
             if (line.column === CONFIG.hashTags){
                 let obj = {};
-                mapUserNbTweet.set(line.key, obj);
+                mapUserHashtags.set(line.key, obj);
 
-                let value = mapUserNbTweet.get(line.key);
+                let value = mapUserHashtags.get(line.key);
                 let hashTags = line['$'];
                 value.hashTags = hashTags;
-                mapUserNbTweet.set(line.key, value);
+                mapUserHashtags.set(line.key, value);
             }
             if (line.column === CONFIG.user){
-                let value = mapUserNbTweet.get(line.key);
+                let value = mapUserHashtags.get(line.key);
                 let user = line['$'];
                 value.user = user;
-                mapUserNbTweet.set(line.key, value);
+                mapUserHashtags.set(line.key, value);
             }
         });
         let listRes = [];
-        mapUserNbTweet.forEach(elem => {
+        mapUserHashtags.forEach(elem => {
             listRes.push(elem);
         });
-
-
+        console.log("---- End getUserHashtags ----");
         res.json(listRes);
-    });
-};
+    })
+}
+
+/**
+ * example : http://localhost:4000/api/users/userNbTweet?search=math
+ */
 
 exports.getUserNbTweet = (req, res, next) => {
     console.log("---- Start getUserNbTweet ----");
     const CONFIG = require('../api/userQ2/userNbTweet');
+    const {search} = req.query;
+    const filter = {
+        "op": "EQUAL",
+        "type": "RowFilter",
+        "comparator": { "value": `.*${search}.*`, "type": "RegexStringComparator" }
+    };
 
-    client.table(CONFIG.tableName).row('*').get(CONFIG.columnName, function(err, cell) {
-        console.log(cell);
+    client.table(CONFIG.tableName).scan({filter}, function(err, cell) {
 
         let mapUserNbTweet = new Map();
         cell.forEach(line => {
@@ -64,14 +80,12 @@ exports.getUserNbTweet = (req, res, next) => {
                 mapUserNbTweet.set(line.key, value);
             }
         });
-        console.log("---- Before getUserNbTweet : forEach ----");
         let listRes = [];
         mapUserNbTweet.forEach(elem => {
             listRes.push(elem);
         });
-
-        // res.json(listRes);
-        res.json(["test"]);
+        console.log("---- End getUserNbTweet ----");
+        res.json(listRes);
     });
 };
 
@@ -79,20 +93,6 @@ exports.getTweetNbByCountry = (req, res, next) => {
     console.log("---- Start getTweetNbByCountry ----");
     const CONFIG = require('../api/userQ2/tweetNbByCountry');
     const {stats} = req.query;
-
-    // ---- TEST ----
-
-    // const tableName = 'seb-mat';
-    // client.tables((error, tables) => {
-    //     tables.forEach(elem => {
-    //         const name = elem.name;
-    //         if(name.includes(tableName)){
-    //             console.log(name);
-    //         }
-    //     })
-    // });
-
-    // ---- TEST ----
 
     client.table(CONFIG.tableName).row('*').get(CONFIG.columnName, function(err, cell) {
 
