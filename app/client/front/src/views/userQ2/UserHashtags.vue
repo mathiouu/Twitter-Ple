@@ -84,6 +84,7 @@ export default {
                 if(dataRep.length == 0){
                     this.err.boolValue = true;
                     this.err.msg = "Can't get datas";
+                    this.submitDisabled = false;
                     return;
                 }
 

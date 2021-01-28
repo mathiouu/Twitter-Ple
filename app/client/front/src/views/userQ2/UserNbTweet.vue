@@ -71,6 +71,8 @@ export default {
         }
         else{
             this.resetBooleanVal();
+            this.userNbTweet = [];
+
             const uri = `/api/users/userNbTweet?search=${this.userName}`;
             this.submitDisabled = true;
             axios.get(uri).then(response => {
@@ -79,6 +81,7 @@ export default {
                 if(dataRep.length == 0){
                     this.err.boolValue = true;
                     this.err.msg = "Can't get datas";
+                    this.submitDisabled = false;
                     return;
                 }
 
