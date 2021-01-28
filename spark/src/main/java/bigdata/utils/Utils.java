@@ -28,51 +28,7 @@ import scala.Tuple2;
 
 public class Utils {
 
-	public static void fillHBaseTable1(JavaPairRDD<String, String> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
-		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
-		// Information about the declaration table
-		Table table = null;
-		Connection connection = null;
-		try {
-
-			connection = ConnectionFactory.createConnection(hbConf);
-
-			table = connection.getTable(TableName.valueOf(tableName));
-
-			List<Tuple2<String, String>> data = rdd.collect();
-			Integer i = 0;
-
-			for (Tuple2<String, String> line : data) {
-
-				Put put = new Put(Bytes.toBytes(String.valueOf(i)));
-				put.addColumn(familyName, Bytes.toBytes(columns.get(0)), Bytes.toBytes(line._1));
-				put.addColumn(familyName, Bytes.toBytes(columns.get(1)), Bytes.toBytes(line._2));
-				i += 1;
-				table.put(put);
-			}
-			// admin.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (table != null) {
-				try {
-					// Close the table object.
-					table.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			if (connection != null) {
-				try {
-					// Close the HBase connection.
-					connection.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}	
-    }
-
+	@Deprecated
     public static void fillHBaseTable(JavaPairRDD<String, Integer> rdd, JavaSparkContext context, String tableName, byte[] familyName, ArrayList<String> columns){
 		Configuration hbConf = HBaseConfiguration.create(context.hadoopConfiguration());
 		// Information about the declaration table
@@ -150,6 +106,7 @@ public class Utils {
 		return day.toString() + daySelected + tweetEndFilePath;
 	}
 
+	@Deprecated
     public static JavaRDD<JsonObject> convertLinesToTweets(JavaRDD<String> lines) {
 		JavaRDD<JsonObject> tweets = lines.flatMap(line-> {
 			ArrayList<JsonObject> res = new ArrayList<JsonObject>();

@@ -84,10 +84,15 @@ exports.getUserNbTweet = (req, res, next) => {
         mapUserNbTweet.forEach(elem => {
             listRes.push(elem);
         });
+        listRes.sort(sortArrayWithInteger);
         console.log("---- End getUserNbTweet ----");
         res.json(listRes);
     });
 };
+
+/**
+ * example : http://localhost:4000/api/users/tweetNbByCountry?stats=true
+ */
 
 exports.getTweetNbByCountry = (req, res, next) => {
     console.log("---- Start getTweetNbByCountry ----");
@@ -132,6 +137,7 @@ exports.getTweetNbByCountry = (req, res, next) => {
                 nbTimesTotal : cptTimes
             });
         }
+        console.log("---- End getUserNbTweet ----");
         res.json(listRes);
     });
 }
@@ -147,6 +153,10 @@ function sortArrayWithInteger(a, b){
     }
     return 0;
 }
+
+/**
+ * example : http://localhost:4000/api/users/tweetNbByLang?stats=true
+ */
 
 exports.getTweetNbByLang = (req, res, next) => {
     console.log("---- Start getTweetNbByLang ----");
@@ -191,9 +201,15 @@ exports.getTweetNbByLang = (req, res, next) => {
                 nbTimesTotal : cptTimes
             });
         }
+        console.log("---- End getTweetNbByLang ----");
         res.json(listRes);
     });
 }
+
+
+/**
+ * example : http://localhost:4000/api/users/getLangTopKTweet?topk=10&stats=true
+ */
 
 exports.getLangTopKTweet = (req, res, next) => {
     console.log("---- Start getLangTopKTweet ----");
@@ -226,6 +242,7 @@ exports.getLangTopKTweet = (req, res, next) => {
             }
         });
         if(topk > mapTweetByLang.size){
+            console.log("---- End getLangTopKTweet ----");
             res.json([]);
         }
         else{
@@ -246,6 +263,7 @@ exports.getLangTopKTweet = (req, res, next) => {
                 finalRes.push({
                     nbTimesTotal : cptTimes
                 });
+                console.log("---- End getLangTopKTweet ----");
                 res.json(finalRes);
             }
             else{
@@ -253,11 +271,16 @@ exports.getLangTopKTweet = (req, res, next) => {
                 for(var i = 0; i < topk; i++){
                     finalRes.push(listRes[i]);
                 }
+                console.log("---- End getLangTopKTweet ----");
                 res.json(finalRes);
             }
         }
     });
 }
+
+/**
+ * example : http://localhost:4000/api/users/getCountryTopKTweet?topk=10&stats=true
+ */
 
 exports.getCountryTopKTweet = (req, res, next) => {
     console.log("---- Start getCountryTopKTweet ----");
@@ -290,6 +313,7 @@ exports.getCountryTopKTweet = (req, res, next) => {
             }
         });
         if(topk > mapTweetByCountry.size){
+            console.log("---- End getCountryTopKTweet ----");
             res.json([]);
         }
         else{
@@ -310,6 +334,7 @@ exports.getCountryTopKTweet = (req, res, next) => {
                 finalRes.push({
                     nbTimesTotal : cptTimes
                 });
+                console.log("---- End getCountryTopKTweet ----");
                 res.json(finalRes);
             }
             else{
@@ -317,6 +342,7 @@ exports.getCountryTopKTweet = (req, res, next) => {
                 for(var i = 0; i < topk; i++){
                     finalRes.push(listRes[i]);
                 }
+                console.log("---- End getCountryTopKTweet ----");
                 res.json(finalRes);
             }
         }

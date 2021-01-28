@@ -84,7 +84,7 @@ public class TweetNbByLang {
 			JavaRDD<Tuple2<String, Integer>> tweets = lines.flatMap(getNbTweetByLang);
 			JavaPairRDD<String, Integer> pairRddNbTweetByLang = tweets.mapToPair(tweet-> tweet).partitionBy(new HashPartitioner(30));
 
-			pairRddNbTweetByLang.repartition(30);
+			pairRddNbTweetByLang.repartition(20);
 			
 			JavaPairRDD<String, Integer> resRDDNbTweetByLang = pairRddNbTweetByLang.reduceByKey((a,b) -> a + b).partitionBy(new HashPartitioner(30));
 

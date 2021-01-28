@@ -22,32 +22,26 @@ app.use((req, res, next) => {
   );
   next();
 });
-// app.use(express.static('./client/bdxquizz-front/dist'));
-// app.get('/', (req, res) => {
-//   res.sendFile('index.html', {
-//     root: `${__dirname}/client/bdxquizz-front/dist/`,
-//   });
-// });
 const port = 4000
 
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
-app.use(history({ index: 'index.html' }));
+// app.use(history({ index: 'index.html' }));
 
-app.use(express.static('./client/front/dist'));
-app.get('/', (req, res) => {
-  res.sendFile('index.html', {
-    root: `${__dirname}/client/front/dist/`,
-  });
-});
+// app.use(express.static('./client/front/dist'));
+// app.get('/', (req, res) => {
+//   res.sendFile('index.html', {
+//     root: `${__dirname}/client/front/dist/`,
+//   });
+// });
 
 
 const hashtagsRoute = require('./server/routes/hashtags');
 app.use('/api/hashtags/', hashtagsRoute);
 
-const userQ2Route = require('./server/routes/q2Routes');
+const userQ2Route = require('./server/routes/userQ2Routes');
 app.use('/api/users/', userQ2Route);
 
 const influencersRoute = require('./server/routes/influencers');

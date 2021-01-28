@@ -22,6 +22,7 @@ exports.getOurTable = (req, res, next) => {
                 tableArr.push(val);
             }
         });
+        console.log("---- End getOurTable ----");
         res.json(tableArr);
     });
 }
@@ -41,6 +42,7 @@ exports.getAllTables = (req, res, next) => {
             };
             tableArr.push(val);
         });
+        console.log("---- End getAllTables ----");
         res.json(tableArr);
     });
 }

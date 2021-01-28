@@ -5,7 +5,7 @@
         <b-col md="2"></b-col>
         <b-col>
 
-          <b-form>
+          <b-form id="searchForm">
             <b-form-group
               id="input-group-1"
               label-for="input-1"
@@ -73,3 +73,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+
+#searchForm{
+  margin-top: 2%;
+}
+
+</style>
