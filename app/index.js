@@ -30,13 +30,19 @@ app.use((req, res, next) => {
 // });
 const port = 4000
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
+app.use(history({ index: 'index.html' }));
+
+app.use(express.static('./client/front/dist'));
+app.get('/', (req, res) => {
+  res.sendFile('index.html', {
+    root: `${__dirname}/client/front/dist/`,
+  });
+});
+
 
 const hashtagsRoute = require('./server/routes/hashtags');
 app.use('/api/hashtags/', hashtagsRoute);
@@ -46,3 +52,5 @@ app.use('/api/users/', q2Route);
 
 const influencersRoute = require('./server/routes/influencers');
 app.use('/api/influencers/', influencersRoute);
+
+

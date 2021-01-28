@@ -123,12 +123,12 @@ public class Triplets {
 	public static ArrayList<String> extractsAllTriplets(JsonArray hashtags){
 		ArrayList<String> result = new ArrayList<String>();
         for (int i = 0; i <= hashtags.size()-3;i++){
-			String hashtag1 = hashtags.get(i).getAsJsonObject().get("text").getAsString();
+			String hashtag1 = hashtags.get(i).getAsJsonObject().get("text").getAsString().toLowerCase();
             for(int j = i+1 ; j<= hashtags.size()-2;j++){	
-				String hashtag2 = hashtags.get(j).getAsJsonObject().get("text").getAsString();
+				String hashtag2 = hashtags.get(j).getAsJsonObject().get("text").getAsString().toLowerCase();
 				if(hashtag1.equals(hashtag2)) continue;
                 for(int k = j+1 ; k<= hashtags.size()-1;k++){
-					String hashtag3 = hashtags.get(k).getAsJsonObject().get("text").getAsString();
+					String hashtag3 = hashtags.get(k).getAsJsonObject().get("text").getAsString().toLowerCase();
 					if(hashtag1.equals(hashtag3) || hashtag2.equals(hashtag3)) continue;
 					ArrayList<String> tuples = new ArrayList<String>();
 					tuples.add(hashtag1);

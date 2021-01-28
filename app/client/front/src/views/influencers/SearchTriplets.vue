@@ -61,7 +61,7 @@ export default {
       console.log("submit");
       console.log(this.hashtagToSearch);
       axios
-        .get(`/api/influencers/triplets?hashtags=${this.hashtagsToSearch}`)
+        .get(`/api/influencers/triplets?hashtags=${this.hashtagsToSearch.toLowerCase()}`)
         .then((response) => {
             this.hashtagsList = response.data;
             console.log(response.data);

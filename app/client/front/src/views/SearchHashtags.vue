@@ -63,7 +63,7 @@ export default {
       console.log("submit");
       console.log(this.hashtagToSearch);
       axios
-        .get(`/api/hashtags/search_hashtag?hashtag=${this.hashtagToSearch}`)
+        .get(`/api/hashtags/search_hashtag?hashtag=${this.hashtagToSearch.toLowerCase()}`)
         .then((response) => {
             this.hashtagsList = response.data;
             console.log(response.data);
