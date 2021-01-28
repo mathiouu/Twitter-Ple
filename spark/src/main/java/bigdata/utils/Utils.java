@@ -93,13 +93,8 @@ public class Utils {
 
 			table = connection.getTable(TableName.valueOf(tableName));
 
-			Long sizeRdd = rdd.count();
-			int minSizeRdd = sizeRdd.intValue();
-
-			// List<Tuple2<String, Integer>> data = rdd.takeOrdered(minSizeRdd, new CountComparator());
 			List<Tuple2<String, Integer>> data = rdd.collect();
 
-			// List<Tuple2<String,Integer>> data = rdd.mapToPair(x -> x.swap()).sortByKey(false).mapToPair(x -> x.swap()).take(100);
 			Integer i = 0;
 
 			for (Tuple2<String, Integer> line : data) {

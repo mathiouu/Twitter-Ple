@@ -8,7 +8,8 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () =>
-      import(/* webpackChunkName: "about" */ '../views/Hashtags.vue'),
+      // import(/* webpackChunkName: "about" */ '../views/Hashtags.vue'),
+      import(/* webpackChunkName: "about" */ '../views/Home.vue'),
   },
   {
     path: '/about',
@@ -53,6 +54,22 @@ const routes = [
     component: () =>
       import( '../views/userQ2/TweetNbByCountry.vue'),
   },
+
+  {
+    path: '/userNbTweet',
+    name: 'userNbTweet',
+    component: () =>
+      import( '../views/userQ2/UserNbTweet.vue'),
+  },
+
+  {
+    path: '/userHashtags',
+    name: 'userHashtags',
+    component: () =>
+      import( '../views/userQ2/UserHashtags.vue'),
+  },
+
+  // Q3 PART
 
   {
     path: '/influencers',

@@ -8,7 +8,7 @@ public class Lang {
         this.lang = lang;
     }
 
-    public String getConvertedLang(){
+    public String getConvertedLang() throws Exception {
 
         switch(this.lang){
             // First row
@@ -159,7 +159,9 @@ public class Lang {
             case "cy" :
                 return "Welsh";
             default:
-                return "unvalid country";
+                // return "unvalid lang";
+
+                throw new Exception("unvalid lang");
         }
     }
 }
