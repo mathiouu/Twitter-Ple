@@ -16,7 +16,7 @@ exports.getTopKHashtags = (req, res) => {
       .row(`${day}*`).get('hashtags', function (err, cell) {
         let mapTopKHashtagsByDay = new Map();
         cell.forEach(line => {
-          if (line.column === 'hashtags:hashtag') {
+          if (line.column === 'hashtags:hashtags') {
             let value = mapTopKHashtagsByDay.get(line.key);
             if (value === undefined) {
               value = { hashtag: line['$'] }
@@ -28,8 +28,12 @@ exports.getTopKHashtags = (req, res) => {
           }
           if (line.column === 'hashtags:times') {
             let value = mapTopKHashtagsByDay.get(line.key);
-
-            value.times = line['$'];
+            if (value === undefined) {
+              value = { times: line['$'] }
+            }
+            else {
+              value.times = line['$'];
+            }
             mapTopKHashtagsByDay.set(line.key, value);
           }
         });
